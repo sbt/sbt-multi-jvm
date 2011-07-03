@@ -1,0 +1,2 @@
+Multi-JVM sbt plugin
+====================
