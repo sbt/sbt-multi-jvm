@@ -3,9 +3,9 @@ sbtPlugin := true
 
 organization := "com.typesafe"
 
-name := "multi-jvm"
+name := "sbt-multi-jvm"
 
-version := "0.1"
+version := "0.1-SNAPSHOT"
 
 publishMavenStyle := true
 
