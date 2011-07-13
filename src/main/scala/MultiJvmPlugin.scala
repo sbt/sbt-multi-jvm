@@ -90,7 +90,10 @@ object MultiJvmPlugin {
 
   def multiJvmTest = (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams) map {
     (tests, marker, runWith, options, srcDir, s) => {
-      tests foreach { case (name, classes) => multi(name, classes, marker, runWith, options, srcDir, false, s.log) }
+      if (tests.isEmpty) s.log.info("No tests to run.")
+      else tests.foreach {
+        case (name, classes) => multi(name, classes, marker, runWith, options, srcDir, false, s.log)
+      }
     }
   }
 
@@ -99,15 +102,20 @@ object MultiJvmPlugin {
       case (map, marker, runWith, options, srcDir, s, (tests, extraOptions)) =>
         tests foreach { name =>
           val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
-          multi(name, map(name), marker, runWith, opts, srcDir, false, s.log)
+          val classes = map.getOrElse(name, Seq.empty)
+          if (classes.isEmpty) s.log.info("No tests to run.")
+          else multi(name, classes, marker, runWith, opts, srcDir, false, s.log)
         }
     }
   }
 
   def multiJvmRun = InputTask(TaskData(multiJvmAppNames)(runParser)(Nil)) { result =>
     (result, multiJvmApps, multiJvmMarker, runWith, multiRunOptions, sourceDirectory, connectInput, streams) map {
-      (name, map, marker, runWith, options, srcDir, connect, s) =>
-        multi(name, map(name), marker, runWith, options, srcDir, connect, s.log)
+      (name, map, marker, runWith, options, srcDir, connect, s) => {
+        val classes = map.getOrElse(name, Seq.empty)
+        if (classes.isEmpty) s.log.info("No apps to run.")
+        else multi(name, classes, marker, runWith, options, srcDir, connect, s.log)
+      }
     }
   }
 

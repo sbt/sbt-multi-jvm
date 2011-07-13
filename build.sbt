@@ -5,7 +5,7 @@ organization := "com.typesafe"
 
 name := "sbt-multi-jvm"
 
-version := "0.1-SNAPSHOT"
+version := "0.1.1"
 
 publishMavenStyle := true
 
