@@ -135,8 +135,8 @@ object MultiJvmPlugin {
         val allJvmOptions = options.jvm ++ optionsFromFile ++ options.extra(className)
         val scalaOptions = options.scala(testClass)
         val connectInput = input && index == 0
-        log.info("Starting %s for %s" format (jvmName, testClass))
-        log.info("  with JVM options: %s" format allJvmOptions.mkString(" "))
+        log.debug("Starting %s for %s" format (jvmName, testClass))
+        log.debug("  with JVM options: %s" format allJvmOptions.mkString(" "))
         (testClass, Jvm.startJvm(runWith.java, allJvmOptions, runWith.scala, scalaOptions, jvmLogger, connectInput))
       }
     }
