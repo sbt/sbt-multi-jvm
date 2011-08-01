@@ -1,14 +1,12 @@
 
 sbtPlugin := true
 
-organization := "com.typesafe"
+organization := "com.typesafe.sbt-multi-jvm"
 
 name := "sbt-multi-jvm"
 
-version := "0.1.2"
+version := "0.1.3-SNAPSHOT"
 
 publishMavenStyle := true
 
 publishTo := Some("Typesafe Publish Repo" at "http://repo.typesafe.com/typesafe/maven-releases/")
-
-credentials += Credentials(Path.userHome / ".ivy2" / "typesafe-credentials")
