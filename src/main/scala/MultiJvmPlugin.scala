@@ -3,6 +3,7 @@ import Keys._
 import Cache.seqFormat
 import sbinary.DefaultProtocol.StringFormat
 import java.io.File
+import java.lang.Boolean.getBoolean
 
 object MultiJvmPlugin {
   case class RunWith(java: File, scala: ScalaInstance)
@@ -49,7 +50,7 @@ object MultiJvmPlugin {
     jvmOptions := Seq.empty,
     extraOptions := { (name: String) => Seq.empty },
     scalatestRunner := "org.scalatest.tools.Runner",
-    scalatestOptions := Seq("-o"),
+    scalatestOptions := defaultScalatestOptions,
     scalatestClasspath <<= managedClasspath map { _.filter(_.data.name.contains("scalatest")) },
     scalatestScalaOptions <<= (scalatestRunner, scalatestOptions, scalatestClasspath, fullClasspath) map scalaOptionsForScalatest,
     multiTestOptions <<= (jvmOptions, extraOptions, scalatestScalaOptions) map Options,
@@ -75,6 +76,10 @@ object MultiJvmPlugin {
   def javaCommand(javaHome: Option[File], name: String): File = {
     val home = javaHome.getOrElse(new File(System.getProperty("java.home")))
     new File(new File(home, "bin"), name)
+  }
+
+  def defaultScalatestOptions: Seq[String] = {
+    if (getBoolean("sbt.log.noformat")) Seq("-oW") else Seq("-o")
   }
 
   def scalaOptionsForScalatest(runner: String, options: Seq[String], classpath: Classpath, fullClasspath: Classpath) = {
