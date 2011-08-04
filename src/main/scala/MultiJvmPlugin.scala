@@ -4,6 +4,7 @@ import Cache.seqFormat
 import sbinary.DefaultProtocol.StringFormat
 import java.io.File
 import java.lang.Boolean.getBoolean
+import scala.Console.{ GREEN, RESET }
 
 object MultiJvmPlugin {
   case class RunWith(java: File, scala: ScalaInstance)
@@ -130,6 +131,8 @@ object MultiJvmPlugin {
   }
 
   def multi(name: String, classes: Seq[String], marker: String, runWith: RunWith, options: Options, srcDir: File, input: Boolean, log: Logger): Unit = {
+    val logName = "* " + name
+    log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val processes = classes.zipWithIndex map {
       case (testClass, index) => {
         val jvmName = "JVM-" + multiIdentifier(testClass, marker)
