@@ -36,6 +36,8 @@ object MultiJvmPlugin {
   val connectInput = SettingKey[Boolean]("connect-input")
   val multiRunOptions = TaskKey[Options]("multi-run-options")
 
+  val multiRunCopiedClassLocation = SettingKey[File]("multi-run-copied-class-location")
+
   lazy val settings: Seq[Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ multiJvmSettings)
 
   def multiJvmSettings = Seq(
@@ -53,7 +55,8 @@ object MultiJvmPlugin {
     scalatestRunner := "org.scalatest.tools.Runner",
     scalatestOptions := defaultScalatestOptions,
     scalatestClasspath <<= managedClasspath map { _.filter(_.data.name.contains("scalatest")) },
-    scalatestScalaOptions <<= (scalatestRunner, scalatestOptions, scalatestClasspath, fullClasspath) map scalaOptionsForScalatest,
+    multiRunCopiedClassLocation <<= target.apply(targetFile => new File(targetFile, "multi-run-copied-libraries")),
+    scalatestScalaOptions <<= (scalatestRunner, scalatestOptions, fullClasspath, multiRunCopiedClassLocation) map scalaOptionsForScalatest,
     multiTestOptions <<= (jvmOptions, extraOptions, scalatestScalaOptions) map Options,
     appScalaOptions <<= fullClasspath map scalaOptionsForApps,
     connectInput := true,
@@ -83,10 +86,12 @@ object MultiJvmPlugin {
     if (getBoolean("sbt.log.noformat")) Seq("-oW") else Seq("-o")
   }
 
-  def scalaOptionsForScalatest(runner: String, options: Seq[String], classpath: Classpath, fullClasspath: Classpath) = {
-    val cp = classpath.files.absString
-    val paths = "\"" + fullClasspath.files.map(_.absolutePath).mkString(" ", " ", " ") + "\""
-    (testClass: String) => { Seq("-cp", cp, runner, "-s", testClass, "-p", paths) ++ options }
+  def scalaOptionsForScalatest(runner: String, options: Seq[String], fullClasspath: Classpath, multiRunCopiedClassDir: File) = {
+    val directoryBasedClasspathEntries = fullClasspath.files.filter(_.isDirectory)
+    // Copy over just the jars to this folder.
+    fullClasspath.files.filter(_.isFile).foreach(classpathFile => IO.copyFile(classpathFile, new File(multiRunCopiedClassDir, classpathFile.getName), true))
+    val cp = directoryBasedClasspathEntries.absString + File.pathSeparator + multiRunCopiedClassDir.getAbsolutePath + File.separator + "*"
+    (testClass: String) => { Seq("-cp", cp, runner, "-s", testClass) ++ options }
   }
 
   def scalaOptionsForApps(classpath: Classpath) = {
