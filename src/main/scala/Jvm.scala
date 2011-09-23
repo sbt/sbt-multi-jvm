@@ -1,3 +1,5 @@
+package com.typesafe.sbtmultijvm
+
 import sbt._
 
 import java.io.File

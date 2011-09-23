@@ -2,7 +2,7 @@ sbt-multi-jvm
 =============
 
 An [sbt] plugin for running scalatest tests in multiple JVMs. This plugin
-requires sbt 0.10.1.
+requires sbt 0.11.0-RC1.
 
 [sbt]: https://github.com/harrah/xsbt
 
@@ -10,11 +10,13 @@ requires sbt 0.10.1.
 Add plugin
 ----------
 
-To use the plugin in a project add the following to `project/plugins/build.sbt`:
+### sbt 0.11.0-RC1
+
+To use the plugin in a project add the following to `project/plugins.sbt`:
 
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
 
-    libraryDependencies += "com.typesafe.sbt-multi-jvm" %% "sbt-multi-jvm" % "0.1.4"
+    addSbtPlugin("com.typesafe.sbtmultijvm" % "sbt-multi-jvm" % "0.1.6")
 
 
 More information

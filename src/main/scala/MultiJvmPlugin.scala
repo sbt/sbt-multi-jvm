@@ -1,3 +1,5 @@
+package com.typesafe.sbtmultijvm
+
 import sbt._
 import Keys._
 import Cache.seqFormat
@@ -20,8 +22,8 @@ object MultiJvmPlugin {
   val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
   val multiJvmAppNames = TaskKey[Seq[String]]("multi-jvm-app-names")
 
-  val java = SettingKey[File]("java")
-  val runWith = SettingKey[RunWith]("run-with")
+  val java = TaskKey[File]("java")
+  val runWith = TaskKey[RunWith]("run-with")
 
   val jvmOptions = SettingKey[Seq[String]]("jvm-options")
   val extraOptions = SettingKey[String => Seq[String]]("extra-options")
@@ -42,14 +44,14 @@ object MultiJvmPlugin {
 
   def multiJvmSettings = Seq(
     multiJvmMarker := "MultiJvm",
-    loadedTestFrameworks <<= (loadedTestFrameworks in Test).identity,
+    loadedTestFrameworks <<= loadedTestFrameworks in Test,
     definedTests <<= Defaults.detectTests,
     multiJvmTests <<= (definedTests, multiJvmMarker) map { (d, m) => collectMultiJvm(d.map(_.name), m) },
     multiJvmTestNames <<= TaskData.write(multiJvmTests map { _.keys.toSeq }) triggeredBy compile,
     multiJvmApps <<= (discoveredMainClasses, multiJvmMarker) map collectMultiJvm,
     multiJvmAppNames <<= TaskData.write(multiJvmApps map { _.keys.toSeq }) triggeredBy compile,
-    java <<= javaHome { javaCommand(_, "java") },
-    runWith <<= (java, scalaInstance) apply RunWith,
+    java <<= javaHome map { javaCommand(_, "java") },
+    runWith <<= (java, scalaInstance) map RunWith,
     jvmOptions := Seq.empty,
     extraOptions := { (name: String) => Seq.empty },
     scalatestRunner := "org.scalatest.tools.Runner",
@@ -161,6 +163,6 @@ object MultiJvmPlugin {
       case _ => None
     }
     failures foreach (log.error(_))
-    if (!failures.isEmpty) error("Some processes failed")
+    if (!failures.isEmpty) sys.error("Some processes failed")
   }
 }

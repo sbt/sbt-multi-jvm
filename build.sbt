@@ -1,12 +1,12 @@
 
 sbtPlugin := true
 
-organization := "com.typesafe.sbt-multi-jvm"
+organization := "com.typesafe.sbtmultijvm"
 
 name := "sbt-multi-jvm"
 
-version := "0.1.6-SNAPSHOT"
+version := "0.1.7-SNAPSHOT"
 
-publishMavenStyle := true
+publishMavenStyle := false
 
-publishTo := Some("Typesafe Publish Repo" at "http://repo.typesafe.com/typesafe/maven-releases/")
+publishTo := Some("Typesafe Publish Repo" at "http://repo.typesafe.com/typesafe/ivy-releases/")
