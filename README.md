@@ -14,9 +14,9 @@ Add plugin
 
 To use the plugin in a project add the following to `project/plugins.sbt`:
 
-    resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
+    resolvers += Classpaths.typesafeResolver
 
-    addSbtPlugin("com.typesafe.sbtmultijvm" % "sbt-multi-jvm" % "0.1.6")
+    addSbtPlugin("com.typesafe.sbtmultijvm" % "sbt-multi-jvm" % "0.1.7")
 
 
 More information
