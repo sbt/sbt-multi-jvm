@@ -47,9 +47,9 @@ object MultiJvmPlugin {
     loadedTestFrameworks <<= loadedTestFrameworks in Test,
     definedTests <<= Defaults.detectTests,
     multiJvmTests <<= (definedTests, multiJvmMarker) map { (d, m) => collectMultiJvm(d.map(_.name), m) },
-    multiJvmTestNames <<= TaskData.write(multiJvmTests map { _.keys.toSeq }) triggeredBy compile,
+    multiJvmTestNames <<= multiJvmTests map { _.keys.toSeq } storeAs multiJvmTestNames triggeredBy compile,
     multiJvmApps <<= (discoveredMainClasses, multiJvmMarker) map collectMultiJvm,
-    multiJvmAppNames <<= TaskData.write(multiJvmApps map { _.keys.toSeq }) triggeredBy compile,
+    multiJvmAppNames <<= multiJvmApps map { _.keys.toSeq } storeAs multiJvmAppNames triggeredBy compile,
     java <<= javaHome map { javaCommand(_, "java") },
     runWith <<= (java, scalaInstance) map RunWith,
     jvmOptions := Seq.empty,
@@ -110,7 +110,7 @@ object MultiJvmPlugin {
     }
   }
 
-  def multiJvmTestOnly = InputTask(TaskData(multiJvmTestNames)(Defaults.testOnlyParser)(Nil)) { result =>
+  def multiJvmTestOnly = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
     (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams, result) map {
       case (map, marker, runWith, options, srcDir, s, (tests, extraOptions)) =>
         tests foreach { name =>
@@ -122,7 +122,7 @@ object MultiJvmPlugin {
     }
   }
 
-  def multiJvmRun = InputTask(TaskData(multiJvmAppNames)(runParser)(Nil)) { result =>
+  def multiJvmRun = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
     (result, multiJvmApps, multiJvmMarker, runWith, multiRunOptions, sourceDirectory, connectInput, streams) map {
       (name, map, marker, runWith, options, srcDir, connect, s) => {
         val classes = map.getOrElse(name, Seq.empty)
