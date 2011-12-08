@@ -2,6 +2,7 @@ package com.typesafe.sbtmultijvm
 
 import sbt._
 import Keys._
+import complete.Parsers._
 import Cache.seqFormat
 import sbinary.DefaultProtocol.StringFormat
 import java.io.File
@@ -17,6 +18,7 @@ object MultiJvmPlugin {
   val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
 
   val multiJvmTests = TaskKey[Map[String, Seq[String]]]("multi-jvm-tests")
+  val selectedTests = InputKey[Unit]("selected-tests")
   val multiJvmTestNames = TaskKey[Seq[String]]("multi-jvm-test-names")
 
   val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
@@ -64,6 +66,7 @@ object MultiJvmPlugin {
     connectInput := true,
     multiRunOptions <<= (jvmOptions, extraOptions, appScalaOptions) map Options,
     test <<= multiJvmTest,
+    selectedTests <<= multiJvmSelectedTests, 
     testOnly <<= multiJvmTestOnly,
     run <<= multiJvmRun,
     runMain <<= multiJvmRun
@@ -118,6 +121,21 @@ object MultiJvmPlugin {
           val classes = map.getOrElse(name, Seq.empty)
           if (classes.isEmpty) s.log.info("No tests to run.")
           else multi(name, classes, marker, runWith, opts, srcDir, false, s.log)
+        }
+    }
+  }
+
+  def multiJvmSelectedTests = InputTask(_ => Space ~> NotSpace) { (id: TaskKey[String]) =>
+    (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams, id) map {
+      (map, marker, runWith, options, srcDir, s, id) => 
+        map.foreach { 
+          case (name, allClasses) =>
+            allClasses.find(multiIdentifier(_, marker) == id) match {
+              case Some(clazz) =>
+                multi(name, Seq(clazz), marker, runWith, options, srcDir, false, s.log)
+              case None =>
+                s.log.info("No tests to run for %s." format name)
+            }
         }
     }
   }
