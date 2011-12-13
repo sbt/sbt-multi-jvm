@@ -133,7 +133,6 @@ object MultiJvmPlugin {
         val finalOptions = Options(options.jvm ++ extraJvm, options.extra, options.scala)
         map.foreach { 
           case (name, allClasses) =>
-            println("name = " + name)
             allClasses.find(multiIdentifier(_, marker) == id) match {
               case Some(clazz) =>
                 multi(name, Seq(clazz), marker, runWith, finalOptions, srcDir, false, s.log)
