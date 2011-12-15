@@ -2,6 +2,9 @@ package com.typesafe.sbtmultijvm
 
 import sbt._
 import Keys._
+import complete.Parsers._
+import complete.Parser
+import Parser._
 import Cache.seqFormat
 import sbinary.DefaultProtocol.StringFormat
 import java.io.File
@@ -17,6 +20,7 @@ object MultiJvmPlugin {
   val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
 
   val multiJvmTests = TaskKey[Map[String, Seq[String]]]("multi-jvm-tests")
+  val selectedTests = InputKey[Unit]("selected-tests")
   val multiJvmTestNames = TaskKey[Seq[String]]("multi-jvm-test-names")
 
   val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
@@ -65,6 +69,7 @@ object MultiJvmPlugin {
     multiRunOptions <<= (jvmOptions, extraOptions, appScalaOptions) map Options,
     test <<= multiJvmTest,
     testOnly <<= multiJvmTestOnly,
+    selectedTests <<= multiJvmSelectedTests,
     run <<= multiJvmRun,
     runMain <<= multiJvmRun
   )
@@ -120,6 +125,28 @@ object MultiJvmPlugin {
           else multi(name, classes, marker, runWith, opts, srcDir, false, s.log)
         }
     }
+  }
+
+  def multiJvmSelectedTests = InputTask(_ => selectedTestsInputParser) { (input: TaskKey[(String, List[String])]) =>
+    (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams, input) map {
+      case (map, marker, runWith, options, srcDir, s, (id, extraJvm)) =>
+        val finalOptions = Options(options.jvm ++ extraJvm, options.extra, options.scala)
+        map.foreach {
+          case (name, allClasses) =>
+            allClasses.find(multiIdentifier(_, marker) == id) match {
+              case Some(clazz) =>
+                multi(name, Seq(clazz), marker, runWith, finalOptions, srcDir, false, s.log)
+              case None =>
+                s.log.info("No tests to run for %s." format name)
+            }
+        }
+    }
+  }
+
+  def selectedTestsInputParser: Parser[(String, List[String])] = {
+    val id = Space ~> token("id=") ~> (IDChar.+.string)
+    val jvmOpts = token("jvm=") ~> (repsep(NotSpace, Space) map (_.toList))
+    id ~ (token(',') ~> jvmOpts).?.map(_ getOrElse List())
   }
 
   def multiJvmRun = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
