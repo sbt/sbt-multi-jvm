@@ -68,8 +68,8 @@ object MultiJvmPlugin {
     connectInput := true,
     multiRunOptions <<= (jvmOptions, extraOptions, appScalaOptions) map Options,
     test <<= multiJvmTest,
-    selectedTests <<= multiJvmSelectedTests, 
     testOnly <<= multiJvmTestOnly,
+    selectedTests <<= multiJvmSelectedTests,
     run <<= multiJvmRun,
     runMain <<= multiJvmRun
   )
@@ -129,9 +129,9 @@ object MultiJvmPlugin {
 
   def multiJvmSelectedTests = InputTask(_ => selectedTestsInputParser) { (input: TaskKey[(String, List[String])]) =>
     (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams, input) map {
-      case (map, marker, runWith, options, srcDir, s, (id, extraJvm)) => 
+      case (map, marker, runWith, options, srcDir, s, (id, extraJvm)) =>
         val finalOptions = Options(options.jvm ++ extraJvm, options.extra, options.scala)
-        map.foreach { 
+        map.foreach {
           case (name, allClasses) =>
             allClasses.find(multiIdentifier(_, marker) == id) match {
               case Some(clazz) =>
