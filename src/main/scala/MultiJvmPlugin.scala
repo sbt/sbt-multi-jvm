@@ -20,7 +20,6 @@ object MultiJvmPlugin {
   val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
 
   val multiJvmTests = TaskKey[Map[String, Seq[String]]]("multi-jvm-tests")
-  val selectedTests = InputKey[Unit]("selected-tests")
   val multiJvmTestNames = TaskKey[Seq[String]]("multi-jvm-test-names")
 
   val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
@@ -69,7 +68,6 @@ object MultiJvmPlugin {
     multiRunOptions <<= (jvmOptions, extraOptions, appScalaOptions) map Options,
     test <<= multiJvmTest,
     testOnly <<= multiJvmTestOnly,
-    selectedTests <<= multiJvmSelectedTests,
     run <<= multiJvmRun,
     runMain <<= multiJvmRun
   )
@@ -127,9 +125,9 @@ object MultiJvmPlugin {
     }
   }
 
-  def multiJvmSelectedTests = InputTask(_ => selectedTestsInputParser) { (input: TaskKey[(String, List[String])]) =>
-    (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams, input) map {
-      case (map, marker, runWith, options, srcDir, s, (id, extraJvm)) =>
+  def multiJvmSelectedTests(id: String, extraJvm: Seq[String]) = {
+    (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams) map {
+      case (map, marker, runWith, options, srcDir, s) =>
         val finalOptions = Options(options.jvm ++ extraJvm, options.extra, options.scala)
         map.foreach {
           case (name, allClasses) =>
@@ -141,12 +139,6 @@ object MultiJvmPlugin {
             }
         }
     }
-  }
-
-  def selectedTestsInputParser: Parser[(String, List[String])] = {
-    val id = Space ~> token("id=") ~> (IDChar.+.string)
-    val jvmOpts = token("jvm=") ~> (repsep(NotSpace, Space) map (_.toList))
-    id ~ (token(',') ~> jvmOpts).?.map(_ getOrElse List())
   }
 
   def multiJvmRun = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
