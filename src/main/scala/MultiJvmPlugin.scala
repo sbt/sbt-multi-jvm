@@ -125,18 +125,16 @@ object MultiJvmPlugin {
     }
   }
 
-  def multiJvmSelectedTests(id: String, extraJvm: Seq[String]) = {
-    (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams) map {
-      case (map, marker, runWith, options, srcDir, s) =>
-        val finalOptions = Options(options.jvm ++ extraJvm, options.extra, options.scala)
-        map.foreach {
-          case (name, allClasses) =>
-            allClasses.find(multiIdentifier(_, marker) == id) match {
-              case Some(clazz) =>
-                multi(name, Seq(clazz), marker, runWith, finalOptions, srcDir, false, s.log)
-              case None =>
-                s.log.info("No tests to run for %s." format name)
-            }
+  def multiJvmSelectedTests(id: String, map: Map[String, Seq[String]], marker: String, runWith: RunWith,
+                            options: Options, srcDir: File, streams: TaskStreams) = {
+    val log = streams.log
+    map.foreach {
+      case (name, allClasses) =>
+        allClasses.find(multiIdentifier(_, marker) == id) match {
+          case Some(clazz) =>
+            multi(name, Seq(clazz), marker, runWith, options, srcDir, false, log)
+          case None =>
+            log.info("No tests to run for %s." format name)
         }
     }
   }
