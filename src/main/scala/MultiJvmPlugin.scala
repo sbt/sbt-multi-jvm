@@ -1,3 +1,7 @@
+/**
+ * Copyright (C) 2011-2012 Typesafe Inc. <http://www.typesafe.com>
+ */
+
 package com.typesafe.sbtmultijvm
 
 import sbt._
