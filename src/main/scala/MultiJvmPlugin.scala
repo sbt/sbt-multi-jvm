@@ -54,6 +54,7 @@ object MultiJvmPlugin {
   val multiJvmTestJarName = TaskKey[String]("multi-jvm-test-jar-name")
 
   val multiNodeTest = TaskKey[Unit]("multi-node-test")
+  val multiNodeExecuteTests = TaskKey[(TestResult.Value, Map[String, TestResult.Value])]("multi-node-execute-tests")
   val multiNodeTestOnly = InputKey[Unit]("multi-node-test-only")
 
   val multiNodeHosts = SettingKey[Seq[String]]("multi-node-hosts")
@@ -87,14 +88,16 @@ object MultiJvmPlugin {
     appScalaOptions <<= fullClasspath map scalaOptionsForApps,
     connectInput := true,
     multiRunOptions <<= (jvmOptions, extraOptions, appScalaOptions) map Options,
-    test <<= multiJvmTest,
+
+    executeTests <<= multiJvmExecuteTests,
     testOnly <<= multiJvmTestOnly,
     run <<= multiJvmRun,
     runMain <<= multiJvmRun,
     // TODO try to make sure that this is only generated on a need to have basis
     multiJvmTestJar <<= (assembly, outputPath in assembly) map { (task, file) => file.getAbsolutePath } ,
     multiJvmTestJarName <<= (outputPath in assembly) map { (file) => file.getAbsolutePath },
-    multiNodeTest <<= multiNodeTestTask,
+    multiNodeTest <<= (multiNodeExecuteTests, streams) map { (results, s) => Tests.showResults(s.log, results) },
+    multiNodeExecuteTests <<= multiNodeExecuteTestsTask,
     multiNodeTestOnly <<= multiNodeTestOnlyTask,
     multiNodeHosts := Seq.empty,
     multiNodeHostsFileName := "multi-node-test.hosts",
@@ -153,12 +156,16 @@ object MultiJvmPlugin {
     (mainClass: String) => Seq("-cp", cp, mainClass)
   }
 
-  def multiJvmTest = (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams) map {
+  def multiJvmExecuteTests: sbt.Project.Initialize[sbt.Task[(TestResult.Value, Map[String, TestResult.Value])]] =
+    (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, streams) map {
     (tests, marker, runWith, options, srcDir, s) => {
-      if (tests.isEmpty) s.log.info("No tests to run.")
-      else tests.foreach {
-        case (name, classes) => multi(name, classes, marker, runWith, options, srcDir, false, s.log)
-      }
+      val results =
+        if (tests.isEmpty)
+          List()
+        else tests.map {
+          case (name, classes) => multi(name, classes, marker, runWith, options, srcDir, false, s.log)
+        }
+      (Tests.overall(results.map(_._2)), results.toMap)
     }
   }
 
@@ -188,7 +195,7 @@ object MultiJvmPlugin {
     }
   }
 
-  def multiJvmRun = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
+  def multiJvmRun: sbt.Project.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
     (result, multiJvmApps, multiJvmMarker, runWith, multiRunOptions, sourceDirectory, connectInput, multiNodeHosts, streams) map {
       (name, map, marker, runWith, options, srcDir, connect, hostsAndUsers, s) => {
         val classes = map.getOrElse(name, Seq.empty)
@@ -204,7 +211,7 @@ object MultiJvmPlugin {
   }
 
   def multi(name: String, classes: Seq[String], marker: String, runWith: RunWith, options: Options, srcDir: File,
-            input: Boolean, log: Logger): Unit = {
+            input: Boolean, log: Logger): (String, TestResult.Value) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val hostsOption = getMultiNodeHostsCommandLineOption(getClassesAndHosts(classes, List()))
@@ -224,10 +231,10 @@ object MultiJvmPlugin {
         (testClass, Jvm.startJvm(runWith.java, allJvmOptions, runWith.scala, scalaOptions, jvmLogger, connectInput))
       }
     }
-    processExitCodes(processes, log)
+    processExitCodes(name, processes, log)
   }
 
-  def processExitCodes(processes: Seq[(String, Process)], log: Logger): Boolean = {
+  def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResult.Value) = {
     val exitCodes = processes map {
       case (testClass, process) => (testClass, process.exitValue)
     }
@@ -236,23 +243,21 @@ object MultiJvmPlugin {
       case _ => None
     }
     failures foreach (log.error(_))
-    if (!failures.isEmpty) {
-      sys.error("Some processes failed")
-      false
-    }
-    else
-      true
+    (name, if(!failures.isEmpty) TestResult.Failed else TestResult.Passed)
   }
 
-  def multiNodeTestTask = (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory,
-    multiNodeWorkAround, streams) map {
+  def multiNodeExecuteTestsTask: sbt.Project.Initialize[sbt.Task[(TestResult.Value, Map[String, TestResult.Value])]] =
+    (multiJvmTests, multiJvmMarker, runWith, multiTestOptions, sourceDirectory, multiNodeWorkAround, streams) map {
       case (tests, marker, runWith, options, srcDir, (jarName, hostsAndUsers, targetDir), s) => {
-        if (tests.isEmpty) s.log.info("No tests to run.")
-        else tests.foreach {
-          case (name, classes) => multiNode(name, classes, marker, runWith, options, srcDir, false, jarName,
-            hostsAndUsers, targetDir, s.log)
+        val results =
+          if (tests.isEmpty)
+            List()
+          else tests.map {
+            case (name, classes) => multiNode(name, classes, marker, runWith, options, srcDir, false, jarName,
+              hostsAndUsers, targetDir, s.log)
         }
-    }
+        (Tests.overall(results.map(_._2)), results.toMap)
+      }
   }
 
   def multiNodeTestOnlyTask = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
@@ -268,7 +273,7 @@ object MultiJvmPlugin {
   }
 
   def multiNode(name: String, classes: Seq[String], marker: String, runWith: RunWith, options: Options, srcDir: File,
-                input: Boolean, testJar: String, hostsAndUsers: Seq[String], targetDir: String, log: Logger): Unit = {
+                input: Boolean, testJar: String, hostsAndUsers: Seq[String], targetDir: String, log: Logger): (String, TestResult.Value) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesAndHosts = getClassesAndHosts(classes, hostsAndUsers)
@@ -278,7 +283,8 @@ object MultiJvmPlugin {
       case ((testClass, hostAndUser)) =>
         (testClass + " sync", Jvm.syncJar(testJar, hostAndUser, targetDir, log))
     }
-    if (processExitCodes(syncProcesses, log)) {
+    val syncResult = processExitCodes(name, syncProcesses, log)
+    if (syncResult._2 == TestResult.Passed) {
       val processes = classesAndHosts.zipWithIndex map {
         case ((testClass, hostAndUser), index) => {
           val jvmName = "JVM-" + multiIdentifier(testClass, marker)
@@ -296,7 +302,10 @@ object MultiJvmPlugin {
             jvmLogger, connectInput, log))
         }
       }
-      processExitCodes(processes, log)
+      processExitCodes(name, processes, log)
+    }
+    else {
+      syncResult
     }
   }
 
