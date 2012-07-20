@@ -51,7 +51,11 @@ final class JvmLogger(name: String) extends BasicLogger {
 
 object JvmIO {
   def apply(log: Logger, connectInput: Boolean) =
-    new ProcessIO(input(connectInput), processStream(log, Level.Info), processStream(log, Level.Error))
+    new ProcessIO(
+        writeInput    = input(connectInput), 
+        processOutput = processStream(log, Level.Info), 
+        processError  = processStream(log, Level.Error),
+        inheritInput  = {_ => false})
 
   final val BufferSize = 8192
 
