@@ -1,3 +1,5 @@
 lib_managed/
 project/boot/
 target/
+.idea/
+.idea_modules/

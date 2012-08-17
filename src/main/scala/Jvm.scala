@@ -29,6 +29,35 @@ object Jvm {
     val builder = new JProcessBuilder(command: _*)
     Process(builder).run(JvmIO(logger, connectInput))
   }
+
+  def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger) : Process = {
+    val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)
+    val builder = new JProcessBuilder(command: _*)
+    sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
+    val process = Process(builder).run(JvmIO(sbtLogger, false))
+    if (process.exitValue() == 0) {
+      val command: Array[String] = Array("rsync", "-ace", "ssh", jarName, hostAndUser +":" + remoteDir +"/")
+      val builder = new JProcessBuilder(command: _*)
+      sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
+      Process(builder).run(JvmIO(sbtLogger, false))
+    }
+    else {
+      process
+    }
+  }
+
+  def forkRemoteJava(javaBin: File, jvmOptions: Seq[String], appOptions: Seq[String], jarName: String,
+                     hostAndUser: String, remoteDir: String, logger: Logger, connectInput: Boolean,
+                     sbtLogger: Logger): Process = {
+    // TODO other JDKs
+    val java = "java"
+    val shortJarName = new File(jarName).getName
+    val javaCommand = List(List(java), jvmOptions, List("-cp", shortJarName), appOptions).flatten
+    val command = Array("ssh", hostAndUser, ("cd " :: (remoteDir :: (" ; " :: javaCommand))).mkString(" "))
+    sbtLogger.debug("Jvm.forkRemoteJava about to run " + command.mkString(" "))
+    val builder = new JProcessBuilder(command: _*)
+    Process(builder).run(JvmIO(logger, connectInput))
+  }
 }
 
 final class JvmLogger(name: String) extends BasicLogger {
