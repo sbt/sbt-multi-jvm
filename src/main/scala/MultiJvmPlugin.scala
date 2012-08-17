@@ -65,6 +65,9 @@ object MultiJvmPlugin {
   // TODO fugly workaround for now
   val multiNodeWorkAround = TaskKey[(String, Seq[String], String)]("multi-node-workaround")
 
+  private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
+    "No tests to run for " + display(scoped)
+
   lazy val settings: Seq[Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ multiJvmSettings)
 
   def multiJvmSettings = assemblySettings ++ Seq(
@@ -96,7 +99,9 @@ object MultiJvmPlugin {
     // TODO try to make sure that this is only generated on a need to have basis
     multiJvmTestJar <<= (assembly, outputPath in assembly) map { (task, file) => file.getAbsolutePath } ,
     multiJvmTestJarName <<= (outputPath in assembly) map { (file) => file.getAbsolutePath },
-    multiNodeTest <<= (multiNodeExecuteTests, streams) map { (results, s) => Tests.showResults(s.log, results) },
+    multiNodeTest <<= (multiNodeExecuteTests, streams, resolvedScoped, state) map { (results, s, scoped, st) =>
+      implicit val display = Project.showContextKey(st)
+      Tests.showResults(s.log, results, noTestsMessage(scoped)) },
     multiNodeExecuteTests <<= multiNodeExecuteTestsTask,
     multiNodeTestOnly <<= multiNodeTestOnlyTask,
     multiNodeHosts := Seq.empty,
