@@ -46,11 +46,10 @@ object Jvm {
     }
   }
 
-  def forkRemoteJava(javaBin: File, jvmOptions: Seq[String], appOptions: Seq[String], jarName: String,
+  def forkRemoteJava(java: String, jvmOptions: Seq[String], appOptions: Seq[String], jarName: String,
                      hostAndUser: String, remoteDir: String, logger: Logger, connectInput: Boolean,
                      sbtLogger: Logger): Process = {
-    // TODO other JDKs
-    val java = "java"
+    sbtLogger.debug("About to use java " + java)
     val shortJarName = new File(jarName).getName
     val javaCommand = List(List(java), jvmOptions, List("-cp", shortJarName), appOptions).flatten
     val command = Array("ssh", hostAndUser, ("cd " :: (remoteDir :: (" ; " :: javaCommand))).mkString(" "))
