@@ -1,20 +1,19 @@
 
 sbtPlugin := true
 
-organization := "com.typesafe.sbtmultijvm"
+organization := "com.typesafe.sbt"
 
 name := "sbt-multi-jvm"
 
-version := "0.2.0-M5"
+version := "0.2.0"
 
 publishMavenStyle := false
 
-publishTo := Option(Classpaths.typesafeResolver)
-
-resolvers += Resolver.url("sbt-plugin-releases",
-               new URL("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases/"))(Resolver.ivyStylePatterns)
+publishTo <<= (version) { version: String =>
+  val scalasbt = "http://scalasbt.artifactoryonline.com/scalasbt/"
+  val (name, u) = if (version.contains("-SNAPSHOT")) ("sbt-plugin-snapshots", scalasbt+"sbt-plugin-snapshots")
+    else ("sbt-plugin-releases", scalasbt+"sbt-plugin-releases")
+  Some(Resolver.url(name, url(u))(Resolver.ivyStylePatterns))
+}
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.8.3")
-
-// Cross building isn't really working for the plugin dependency
-//CrossBuilding.crossSbtVersions := List("0.11.2", "0.11.3")

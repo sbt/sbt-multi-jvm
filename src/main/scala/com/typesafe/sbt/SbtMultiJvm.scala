@@ -2,7 +2,7 @@
  * Copyright (C) 2011-2012 Typesafe Inc. <http://www.typesafe.com>
  */
 
-package com.typesafe.sbtmultijvm
+package com.typesafe.sbt
 
 import sbt._
 import Keys._
@@ -16,60 +16,64 @@ import java.lang.Boolean.getBoolean
 import scala.Console.{ GREEN, RESET }
 import sbtassembly.Plugin._
 import AssemblyKeys._
+import com.typesafe.sbt.multijvm._
 
-
-object MultiJvmPlugin {
+object SbtMultiJvm extends Plugin {
   case class RunWith(java: File, scala: ScalaInstance)
   case class Options(jvm: Seq[String], extra: String => Seq[String], scala: String => Seq[String])
 
-  val MultiJvm = config("multi-jvm") extend(Test)
+  object MultiJvmKeys {
+    val MultiJvm = config("multi-jvm") extend(Test)
 
-  val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
+    val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
 
-  val multiJvmTests = TaskKey[Map[String, Seq[String]]]("multi-jvm-tests")
-  val multiJvmTestNames = TaskKey[Seq[String]]("multi-jvm-test-names")
+    val multiJvmTests = TaskKey[Map[String, Seq[String]]]("multi-jvm-tests")
+    val multiJvmTestNames = TaskKey[Seq[String]]("multi-jvm-test-names")
 
-  val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
-  val multiJvmAppNames = TaskKey[Seq[String]]("multi-jvm-app-names")
+    val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
+    val multiJvmAppNames = TaskKey[Seq[String]]("multi-jvm-app-names")
 
-  val java = TaskKey[File]("java")
-  val runWith = TaskKey[RunWith]("run-with")
+    val java = TaskKey[File]("java")
+    val runWith = TaskKey[RunWith]("run-with")
 
-  val jvmOptions = SettingKey[Seq[String]]("jvm-options")
-  val extraOptions = SettingKey[String => Seq[String]]("extra-options")
+    val jvmOptions = SettingKey[Seq[String]]("jvm-options")
+    val extraOptions = SettingKey[String => Seq[String]]("extra-options")
 
-  val scalatestRunner = SettingKey[String]("scalatest-runner")
-  val scalatestOptions = SettingKey[Seq[String]]("scalatest-options")
-  val scalatestClasspath = TaskKey[Classpath]("scalatest-classpath")
-  val scalatestScalaOptions = TaskKey[String => Seq[String]]("scalatest-scala-options")
-  val multiTestOptions = TaskKey[Options]("multi-test-options")
+    val scalatestRunner = SettingKey[String]("scalatest-runner")
+    val scalatestOptions = SettingKey[Seq[String]]("scalatest-options")
+    val scalatestClasspath = TaskKey[Classpath]("scalatest-classpath")
+    val scalatestScalaOptions = TaskKey[String => Seq[String]]("scalatest-scala-options")
+    val multiTestOptions = TaskKey[Options]("multi-test-options")
 
-  val appScalaOptions = TaskKey[String => Seq[String]]("app-scala-options")
-  val connectInput = SettingKey[Boolean]("connect-input")
-  val multiRunOptions = TaskKey[Options]("multi-run-options")
+    val appScalaOptions = TaskKey[String => Seq[String]]("app-scala-options")
+    val connectInput = SettingKey[Boolean]("connect-input")
+    val multiRunOptions = TaskKey[Options]("multi-run-options")
 
-  val multiRunCopiedClassLocation = SettingKey[File]("multi-run-copied-class-location")
+    val multiRunCopiedClassLocation = SettingKey[File]("multi-run-copied-class-location")
 
-  val multiJvmTestJar = TaskKey[String]("multi-jvm-test-jar")
-  val multiJvmTestJarName = TaskKey[String]("multi-jvm-test-jar-name")
+    val multiJvmTestJar = TaskKey[String]("multi-jvm-test-jar")
+    val multiJvmTestJarName = TaskKey[String]("multi-jvm-test-jar-name")
 
-  val multiNodeTest = TaskKey[Unit]("multi-node-test")
-  val multiNodeExecuteTests = TaskKey[(TestResult.Value, Map[String, TestResult.Value])]("multi-node-execute-tests")
-  val multiNodeTestOnly = InputKey[Unit]("multi-node-test-only")
+    val multiNodeTest = TaskKey[Unit]("multi-node-test")
+    val multiNodeExecuteTests = TaskKey[(TestResult.Value, Map[String, TestResult.Value])]("multi-node-execute-tests")
+    val multiNodeTestOnly = InputKey[Unit]("multi-node-test-only")
 
-  val multiNodeHosts = SettingKey[Seq[String]]("multi-node-hosts")
-  val multiNodeHostsFileName = SettingKey[String]("multi-node-hosts-file-name")
-  val multiNodeProcessedHosts = TaskKey[(Seq[String], Seq[String])]("multi-node-processed-hosts")
-  val multiNodeTargetDirName = SettingKey[String]("multi-node-target-dir-name")
-  val multiNodeJavaName = SettingKey[String]("multi-node-java-name")
+    val multiNodeHosts = SettingKey[Seq[String]]("multi-node-hosts")
+    val multiNodeHostsFileName = SettingKey[String]("multi-node-hosts-file-name")
+    val multiNodeProcessedHosts = TaskKey[(Seq[String], Seq[String])]("multi-node-processed-hosts")
+    val multiNodeTargetDirName = SettingKey[String]("multi-node-target-dir-name")
+    val multiNodeJavaName = SettingKey[String]("multi-node-java-name")
 
-  // TODO fugly workaround for now
-  val multiNodeWorkAround = TaskKey[(String, (Seq[String], Seq[String]), String)]("multi-node-workaround")
+    // TODO fugly workaround for now
+    val multiNodeWorkAround = TaskKey[(String, (Seq[String], Seq[String]), String)]("multi-node-workaround")
+  }
+
+  import MultiJvmKeys._
 
   private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
     "No tests to run for " + display(scoped)
 
-  lazy val settings: Seq[Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ multiJvmSettings)
+  override lazy val settings: Seq[Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ multiJvmSettings)
 
   def multiJvmSettings = assemblySettings ++ Seq(
     multiJvmMarker := "MultiJvm",
