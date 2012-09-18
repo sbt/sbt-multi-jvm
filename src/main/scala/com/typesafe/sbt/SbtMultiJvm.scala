@@ -73,9 +73,9 @@ object SbtMultiJvm extends Plugin {
   private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
     "No tests to run for " + display(scoped)
 
-  override lazy val settings: Seq[Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ multiJvmSettings)
+  lazy val multiJvmSettings: Seq[Project.Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ internalMultiJvmSettings)
 
-  def multiJvmSettings = assemblySettings ++ Seq(
+  private def internalMultiJvmSettings = assemblySettings ++ Seq(
     multiJvmMarker := "MultiJvm",
     loadedTestFrameworks <<= loadedTestFrameworks in Test,
     definedTests <<= Defaults.detectTests,
