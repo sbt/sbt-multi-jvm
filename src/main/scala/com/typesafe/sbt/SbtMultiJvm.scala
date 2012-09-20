@@ -238,8 +238,8 @@ object SbtMultiJvm extends Plugin {
         val allJvmOptions = options.jvm ++ multiNodeOptions ++ optionsFromFile ++ options.extra(className)
         val scalaOptions = options.scala(testClass)
         val connectInput = input && index == 0
-        log.info("Starting %s for %s" format (jvmName, testClass))
-        log.info("  with JVM options: %s" format allJvmOptions.mkString(" "))
+        log.debug("Starting %s for %s" format (jvmName, testClass))
+        log.debug("  with JVM options: %s" format allJvmOptions.mkString(" "))
         (testClass, Jvm.startJvm(runWith.java, allJvmOptions, runWith.scala, scalaOptions, jvmLogger, connectInput))
       }
     }
@@ -310,8 +310,8 @@ object SbtMultiJvm extends Plugin {
           // TODO: separate this out in a better way
           val scalaOptions = options.scala(testClass).drop(2)
           val connectInput = input && index == 0
-          log.info("Starting %s for %s" format (jvmName, testClass))
-          log.info("  with JVM options: %s" format allJvmOptions.mkString(" "))
+          log.debug("Starting %s for %s" format (jvmName, testClass))
+          log.debug("  with JVM options: %s" format allJvmOptions.mkString(" "))
           (testClass, Jvm.forkRemoteJava(java, allJvmOptions, scalaOptions, testJar, hostAndUser, targetDir,
             jvmLogger, connectInput, log))
         }
