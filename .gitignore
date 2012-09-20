@@ -3,3 +3,7 @@ project/boot/
 target/
 .idea/
 .idea_modules/
+.cache
+.classpath
+.settings/
+.project

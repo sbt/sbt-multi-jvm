@@ -16,4 +16,4 @@ publishTo <<= (version) { version: String =>
   Some(Resolver.url(name, url(u))(Resolver.ivyStylePatterns))
 }
 
-addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.8.3")
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.8.4")
