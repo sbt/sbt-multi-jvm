@@ -329,7 +329,7 @@ object SbtMultiJvm extends Plugin {
   }
 
   private def getMultiNodeCommandLineOptions(hosts: Seq[String], index: Int, maxNodes: Int): Seq[String] = {
-    Seq("-Dmultinode.max-nodes=" + maxNodes, "-Dmultinode.master-host=" + hosts(0).split("@").last,
+    Seq("-Dmultinode.max-nodes=" + maxNodes, "-Dmultinode.server-host=" + hosts(0).split("@").last,
       "-Dmultinode.host=" + hosts(index).split("@").last, "-Dmultinode.index=" + index)
   }
 
