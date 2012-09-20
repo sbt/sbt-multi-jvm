@@ -225,7 +225,8 @@ object SbtMultiJvm extends Plugin {
             input: Boolean, log: Logger): (String, TestResult.Value) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
-    val hostsOption = getMultiNodeHostsCommandLineOption(getClassesHostsJavas(classes, List(), List(), ""))
+    val classesHostsJavas = getClassesHostsJavas(classes, List(), List(), "")
+    val hosts = classesHostsJavas.map(_._2)
     val processes = classes.zipWithIndex map {
       case (testClass, index) => {
         val jvmName = "JVM-" + multiIdentifier(testClass, marker)
@@ -233,12 +234,12 @@ object SbtMultiJvm extends Plugin {
         val className = multiSimpleName(testClass)
         val optionsFile = (srcDir ** (className + ".opts")).get.headOption
         val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.split(" ").toList) getOrElse (Seq.empty[String])
-        val multiNodeOptions = Seq(hostsOption, "-Dmultinode.index=" + index)
+        val multiNodeOptions = getMultiNodeCommandLineOptions(hosts, index, classes.size)
         val allJvmOptions = options.jvm ++ multiNodeOptions ++ optionsFromFile ++ options.extra(className)
         val scalaOptions = options.scala(testClass)
         val connectInput = input && index == 0
-        log.debug("Starting %s for %s" format (jvmName, testClass))
-        log.debug("  with JVM options: %s" format allJvmOptions.mkString(" "))
+        log.info("Starting %s for %s" format (jvmName, testClass))
+        log.info("  with JVM options: %s" format allJvmOptions.mkString(" "))
         (testClass, Jvm.startJvm(runWith.java, allJvmOptions, runWith.scala, scalaOptions, jvmLogger, connectInput))
       }
     }
@@ -289,7 +290,7 @@ object SbtMultiJvm extends Plugin {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, hostsAndUsers, javas, defaultJava)
-    val hostsOption = getMultiNodeHostsCommandLineOption(classesHostsJavas)
+    val hosts = classesHostsJavas.map(_._2)
     // TODO move this out, maybe to the hosts string as well?
     val syncProcesses = classesHostsJavas.map {
       case ((testClass, hostAndUser, java)) =>
@@ -304,12 +305,13 @@ object SbtMultiJvm extends Plugin {
           val className = multiSimpleName(testClass)
           val optionsFile = (srcDir ** (className + ".opts")).get.headOption
           val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.split(" ").toList) getOrElse (Seq.empty[String])
-          val multiNodeOptions = Seq(hostsOption, "-Dmultinode.index=" + index)
+          val multiNodeOptions = getMultiNodeCommandLineOptions(hosts, index, classes.size)
           val allJvmOptions = options.jvm ++ optionsFromFile ++ options.extra(className) ++ multiNodeOptions
           // TODO: separate this out in a better way
           val scalaOptions = options.scala(testClass).drop(2)
           val connectInput = input && index == 0
-          log.debug("Starting %s for %s" format (jvmName, testClass))
+          log.info("Starting %s for %s" format (jvmName, testClass))
+          log.info("  with JVM options: %s" format allJvmOptions.mkString(" "))
           (testClass, Jvm.forkRemoteJava(java, allJvmOptions, scalaOptions, testJar, hostAndUser, targetDir,
             jvmLogger, connectInput, log))
         }
@@ -326,8 +328,9 @@ object SbtMultiJvm extends Plugin {
     (classes, hostsAndUsers.padTo(max, "localhost"), javas.padTo(max, defaultJava)).zipped.toList
   }
 
-  private def getMultiNodeHostsCommandLineOption(classesHostsJavas: Seq[(String, String, String)]): String = {
-    classesHostsJavas.map { case (clz, host, java) => host.split("@").last } mkString("-Dmultinode.hosts=", "," ,"")
+  private def getMultiNodeCommandLineOptions(hosts: Seq[String], index: Int, maxNodes: Int): Seq[String] = {
+    Seq("-Dmultinode.max-nodes=" + maxNodes, "-Dmultinode.master-host=" + hosts(0).split("@").last,
+      "-Dmultinode.host=" + hosts(index).split("@").last, "-Dmultinode.index=" + index)
   }
 
   private def processMultiNodeHosts(hosts: Seq[String], hostsFileName: String, defaultJava: String, s: Types.Id[Keys.TaskStreams]): (Seq[String], Seq[String]) = {
