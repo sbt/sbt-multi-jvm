@@ -5,7 +5,7 @@ organization := "com.typesafe.sbt"
 
 name := "sbt-multi-jvm"
 
-version := "0.3.4"
+version := "0.3.5-SNAPSHOT"
 
 publishMavenStyle := false
 
@@ -16,4 +16,4 @@ publishTo <<= (version) { version: String =>
   Some(Resolver.url(name, url(u))(Resolver.ivyStylePatterns))
 }
 
-addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.8.3")
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.8.5")
