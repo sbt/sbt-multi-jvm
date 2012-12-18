@@ -99,6 +99,7 @@ object SbtMultiJvm extends Plugin {
 
     executeTests <<= multiJvmExecuteTests,
     testOnly <<= multiJvmTestOnly,
+    test <<= (executeTests, streams) map { (results, s) => Tests.showResults(s.log, results, "No tests to run for MultiJvm") },
     run <<= multiJvmRun,
     runMain <<= multiJvmRun,
     // TODO try to make sure that this is only generated on a need to have basis
