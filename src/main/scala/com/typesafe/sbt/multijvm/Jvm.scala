@@ -5,7 +5,6 @@
 package com.typesafe.sbt.multijvm
 
 import sbt._
-
 import java.io.File
 import java.lang.{ProcessBuilder => JProcessBuilder}
 import java.io.{BufferedReader, InputStream, InputStreamReader, OutputStream}
@@ -30,13 +29,27 @@ object Jvm {
     Process(builder).run(JvmIO(logger, connectInput))
   }
 
+  /**
+   * check if the current operating system is some OS
+  **/
+  def isOS(os:String) = try {
+    System.getProperty("os.name").toUpperCase startsWith os.toUpperCase
+  } catch {
+    case _ : Throwable => false
+  }
+ 
+  /**
+   * convert to proper path for the operating system
+  **/
+  def osPath(path:String) = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lines.mkString else path
+  
   def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger) : Process = {
     val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)
     val builder = new JProcessBuilder(command: _*)
     sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
     val process = Process(builder).run(JvmIO(sbtLogger, false))
     if (process.exitValue() == 0) {
-      val command: Array[String] = Array("rsync", "-ace", "ssh", jarName, hostAndUser +":" + remoteDir +"/")
+      val command: Array[String] = Array("rsync", "-ace", "ssh", osPath(jarName), hostAndUser +":" + remoteDir +"/")
       val builder = new JProcessBuilder(command: _*)
       sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
       Process(builder).run(JvmIO(sbtLogger, false))
