@@ -43,7 +43,9 @@ object SbtMultiJvm extends Plugin {
     val scalatestOptions = SettingKey[Seq[String]]("scalatest-options")
     val scalatestClasspath = TaskKey[Classpath]("scalatest-classpath")
     val scalatestScalaOptions = TaskKey[String => Seq[String]]("scalatest-scala-options")
+    val scalatestMultiNodeScalaOptions = TaskKey[String => Seq[String]]("scalatest-multi-node-scala-options")
     val multiTestOptions = TaskKey[Options]("multi-test-options")
+    val multiNodeTestOptions = TaskKey[Options]("multi-node-test-options")
 
     val appScalaOptions = TaskKey[String => Seq[String]]("app-scala-options")
     val connectInput = SettingKey[Boolean]("connect-input")
@@ -60,12 +62,12 @@ object SbtMultiJvm extends Plugin {
 
     val multiNodeHosts = SettingKey[Seq[String]]("multi-node-hosts")
     val multiNodeHostsFileName = SettingKey[String]("multi-node-hosts-file-name")
-    val multiNodeProcessedHosts = TaskKey[(Seq[String], Seq[String])]("multi-node-processed-hosts")
+    val multiNodeProcessedHosts = TaskKey[(IndexedSeq[String], IndexedSeq[String])]("multi-node-processed-hosts")
     val multiNodeTargetDirName = SettingKey[String]("multi-node-target-dir-name")
     val multiNodeJavaName = SettingKey[String]("multi-node-java-name")
 
     // TODO fugly workaround for now
-    val multiNodeWorkAround = TaskKey[(String, (Seq[String], Seq[String]), String)]("multi-node-workaround")
+    val multiNodeWorkAround = TaskKey[(String, (IndexedSeq[String], IndexedSeq[String]), String)]("multi-node-workaround")
   }
 
   import MultiJvmKeys._
@@ -92,7 +94,9 @@ object SbtMultiJvm extends Plugin {
     scalatestClasspath <<= managedClasspath map { _.filter(_.data.name.contains("scalatest")) },
     multiRunCopiedClassLocation <<= target.apply(targetFile => new File(targetFile, "multi-run-copied-libraries")),
     scalatestScalaOptions <<= (scalatestRunner, scalatestOptions, fullClasspath, multiRunCopiedClassLocation) map scalaOptionsForScalatest,
+    scalatestMultiNodeScalaOptions <<= (scalatestRunner, scalatestOptions) map scalaMultiNodeOptionsForScalatest,
     multiTestOptions <<= (jvmOptions, extraOptions, scalatestScalaOptions) map Options,
+    multiNodeTestOptions <<= (jvmOptions, extraOptions, scalatestMultiNodeScalaOptions) map Options,
     appScalaOptions <<= fullClasspath map scalaOptionsForApps,
     connectInput := true,
     multiRunOptions <<= (jvmOptions, extraOptions, appScalaOptions) map Options,
@@ -137,12 +141,17 @@ object SbtMultiJvm extends Plugin {
   )
 
   def collectMultiJvm(discovered: Seq[String], marker: String): Map[String, Seq[String]] = {
-    discovered filter (_.contains(marker)) groupBy (multiName(_, marker))
+    val found = discovered filter (_.contains(marker)) groupBy (multiName(_, marker))
+    found map {
+      case (key, values) =>
+        val totalNodes = sys.props.get(marker + "." + key + ".nrOfNodes").getOrElse(values.size.toString).toInt
+        val sortedClasses = values.sorted
+        val totalClasses = sortedClasses.padTo(totalNodes, sortedClasses.last)
+        (key, totalClasses)
+    }
   }
 
   def multiName(name: String, marker: String) = name.split(marker).head
-
-  def multiIdentifier(name: String, marker: String) = name.split(marker).last
 
   def multiSimpleName(name: String) = name.split("\\.").last
 
@@ -161,6 +170,10 @@ object SbtMultiJvm extends Plugin {
     fullClasspath.files.filter(_.isFile).foreach(classpathFile => IO.copyFile(classpathFile, new File(multiRunCopiedClassDir, classpathFile.getName), true))
     val cp = directoryBasedClasspathEntries.absString + File.pathSeparator + multiRunCopiedClassDir.getAbsolutePath + File.separator + "*"
     (testClass: String) => { Seq("-cp", cp, runner, "-s", testClass) ++ options }
+  }
+
+  def scalaMultiNodeOptionsForScalatest(runner: String, options: Seq[String]) = {
+    (testClass: String) => { Seq(runner, "-s", testClass) ++ options }
   }
 
   def scalaOptionsForApps(classpath: Classpath) = {
@@ -193,20 +206,6 @@ object SbtMultiJvm extends Plugin {
     }
   }
 
-  def multiJvmSelectedTests(id: String, map: Map[String, Seq[String]], marker: String, runWith: RunWith,
-                            options: Options, srcDir: File, streams: TaskStreams) = {
-    val log = streams.log
-    map.foreach {
-      case (name, allClasses) =>
-        allClasses.find(multiIdentifier(_, marker) == id) match {
-          case Some(clazz) =>
-            multi(name, Seq(clazz), marker, runWith, options, srcDir, false, log)
-          case None =>
-            log.info("No tests to run for %s." format name)
-        }
-    }
-  }
-
   def multiJvmRun: sbt.Project.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
     (result, multiJvmApps, multiJvmMarker, runWith, multiRunOptions, sourceDirectory, connectInput, multiNodeHosts, streams) map {
       (name, map, marker, runWith, options, srcDir, connect, hostsAndUsers, s) => {
@@ -226,11 +225,11 @@ object SbtMultiJvm extends Plugin {
             input: Boolean, log: Logger): (String, TestResult.Value) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
-    val classesHostsJavas = getClassesHostsJavas(classes, List(), List(), "")
+    val classesHostsJavas = getClassesHostsJavas(classes, IndexedSeq.empty, IndexedSeq.empty, "")
     val hosts = classesHostsJavas.map(_._2)
     val processes = classes.zipWithIndex map {
       case (testClass, index) => {
-        val jvmName = "JVM-" + multiIdentifier(testClass, marker)
+        val jvmName = "JVM-" + (index + 1)
         val jvmLogger = new JvmLogger(jvmName)
         val className = multiSimpleName(testClass)
         val optionsFile = (srcDir ** (className + ".opts")).get.headOption
@@ -260,7 +259,7 @@ object SbtMultiJvm extends Plugin {
   }
 
   def multiNodeExecuteTestsTask: sbt.Project.Initialize[sbt.Task[(TestResult.Value, Map[String, TestResult.Value])]] =
-    (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiTestOptions, sourceDirectory, multiNodeWorkAround, streams) map {
+    (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams) map {
       case (tests, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s) => {
         val results =
           if (tests.isEmpty)
@@ -274,7 +273,7 @@ object SbtMultiJvm extends Plugin {
   }
 
   def multiNodeTestOnlyTask = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
-    (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiTestOptions, sourceDirectory, multiNodeWorkAround, streams, result) map {
+    (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams, result) map {
       case (map, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s, (tests, extraOptions)) =>
         tests foreach { name =>
           val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
@@ -286,7 +285,7 @@ object SbtMultiJvm extends Plugin {
   }
 
   def multiNode(name: String, classes: Seq[String], marker: String, defaultJava: String, options: Options, srcDir: File,
-                input: Boolean, testJar: String, hostsAndUsers: Seq[String], javas: Seq[String], targetDir: String,
+                input: Boolean, testJar: String, hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String], targetDir: String,
                 log: Logger): (String, TestResult.Value) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
@@ -301,15 +300,14 @@ object SbtMultiJvm extends Plugin {
     if (syncResult._2 == TestResult.Passed) {
       val processes = classesHostsJavas.zipWithIndex map {
         case ((testClass, hostAndUser, java), index) => {
-          val jvmName = "JVM-" + multiIdentifier(testClass, marker)
+          val jvmName = "JVM-" + (index + 1)
           val jvmLogger = new JvmLogger(jvmName)
           val className = multiSimpleName(testClass)
           val optionsFile = (srcDir ** (className + ".opts")).get.headOption
           val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.split(" ").toList) getOrElse (Seq.empty[String])
           val multiNodeOptions = getMultiNodeCommandLineOptions(hosts, index, classes.size)
           val allJvmOptions = options.jvm ++ optionsFromFile ++ options.extra(className) ++ multiNodeOptions
-          // TODO: separate this out in a better way
-          val scalaOptions = options.scala(testClass).drop(2)
+          val scalaOptions = options.scala(testClass)
           val connectInput = input && index == 0
           log.debug("Starting %s for %s" format (jvmName, testClass))
           log.debug("  with JVM options: %s" format allJvmOptions.mkString(" "))
@@ -324,9 +322,18 @@ object SbtMultiJvm extends Plugin {
     }
   }
 
-  private def getClassesHostsJavas(classes: Seq[String], hostsAndUsers: Seq[String], javas: Seq[String], defaultJava: String): Seq[(String, String, String)] = {
+  private def padSeqOrDefaultTo(seq: IndexedSeq[String], default: String, max: Int): IndexedSeq[String] = {
+    val realSeq = if (seq.isEmpty) IndexedSeq(default) else seq
+    if (realSeq.size >= max)
+      realSeq
+    else
+      (realSeq /: (0 until (max - realSeq.size)))((mySeq, pos) => mySeq :+ realSeq(pos % realSeq.size))
+  }
+
+  private def getClassesHostsJavas(classes: Seq[String], hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String],
+                                   defaultJava: String): IndexedSeq[(String, String, String)] = {
     val max = classes.length
-    (classes, hostsAndUsers.padTo(max, "localhost"), javas.padTo(max, defaultJava)).zipped.toList
+    (classes, padSeqOrDefaultTo(hostsAndUsers, "localhost", max), padSeqOrDefaultTo(javas, defaultJava, max)).zipped.toIndexedSeq
   }
 
   private def getMultiNodeCommandLineOptions(hosts: Seq[String], index: Int, maxNodes: Int): Seq[String] = {
@@ -334,21 +341,22 @@ object SbtMultiJvm extends Plugin {
       "-Dmultinode.host=" + hosts(index).split("@").last, "-Dmultinode.index=" + index)
   }
 
-  private def processMultiNodeHosts(hosts: Seq[String], hostsFileName: String, defaultJava: String, s: Types.Id[Keys.TaskStreams]): (Seq[String], Seq[String]) = {
+  private def processMultiNodeHosts(hosts: Seq[String], hostsFileName: String, defaultJava: String, s: Types.Id[Keys.TaskStreams]):
+    (IndexedSeq[String], IndexedSeq[String]) = {
     val hostsFile = new File(hostsFileName)
-    val theHosts =
+    val theHosts: IndexedSeq[String] =
       if (hosts.isEmpty) {
         if (hostsFile.exists && hostsFile.canRead) {
           s.log.info("Using hosts defined in file " + hostsFile.getAbsolutePath)
-          IO.readLines(hostsFile).map(_.trim).filter(_.length > 0)
+          IO.readLines(hostsFile).map(_.trim).filter(_.length > 0).toIndexedSeq
         }
         else
-          hosts
+          hosts.toIndexedSeq
       }
       else {
         if (hostsFile.exists && hostsFile.canRead)
           s.log.info("Hosts from setting " + multiNodeHosts.key.label + " is overrriding file " + hostsFile.getAbsolutePath)
-        hosts
+        hosts.toIndexedSeq
       }
 
     theHosts.map { x =>
