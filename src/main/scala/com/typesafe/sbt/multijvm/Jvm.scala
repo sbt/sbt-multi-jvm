@@ -10,16 +10,8 @@ import java.lang.{ProcessBuilder => JProcessBuilder}
 import java.io.{BufferedReader, InputStream, InputStreamReader, OutputStream}
 
 object Jvm {
-  def startJvm(javaBin: File, jvmOptions: Seq[String], si: ScalaInstance, scalaOptions: Seq[String], logger: Logger, connectInput: Boolean) = {
-    forkScala(javaBin, jvmOptions, si.jars, scalaOptions, logger, connectInput)
-  }
-
-  def forkScala(javaBin: File, jvmOptions: Seq[String], scalaJars: Iterable[File], arguments: Seq[String], logger: Logger, connectInput: Boolean) = {
-    val scalaClasspath = scalaJars.map(_.getAbsolutePath).mkString(File.pathSeparator)
-    val bootClasspath = "-Xbootclasspath/a:" + scalaClasspath
-    val mainScalaClass = "scala.tools.nsc.MainGenericRunner"
-    val options = jvmOptions ++ Seq(bootClasspath, mainScalaClass) ++ arguments
-    forkJava(javaBin, options, logger, connectInput)
+  def startJvm(javaBin: File, jvmOptions: Seq[String], runOptions: Seq[String], logger: Logger, connectInput: Boolean) = {
+    forkJava(javaBin, jvmOptions ++ runOptions, logger, connectInput)
   }
 
   def forkJava(javaBin: File, options: Seq[String], logger: Logger, connectInput: Boolean) = {
@@ -37,12 +29,12 @@ object Jvm {
   } catch {
     case _ : Throwable => false
   }
- 
+
   /**
    * convert to proper path for the operating system
   **/
   def osPath(path:String) = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lines.mkString else path
-  
+
   def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger) : Process = {
     val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)
     val builder = new JProcessBuilder(command: _*)
@@ -93,8 +85,8 @@ final class JvmLogger(name: String) extends BasicLogger {
 object JvmIO {
   def apply(log: Logger, connectInput: Boolean) =
     new ProcessIO(
-        writeInput    = input(connectInput), 
-        processOutput = processStream(log, Level.Info), 
+        writeInput    = input(connectInput),
+        processOutput = processStream(log, Level.Info),
         processError  = processStream(log, Level.Error),
         inheritInput  = {_ => false})
 
