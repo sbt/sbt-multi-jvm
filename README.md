@@ -12,7 +12,7 @@ Add plugin
 
 To use the plugin in a project add the following to `project/plugins.sbt`:
 
-    addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.3.5")
+    addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.3.6")
 
 
 More information
