@@ -180,27 +180,28 @@ object SbtMultiJvm extends Plugin {
 
   def multiJvmExecuteTests: sbt.Project.Initialize[sbt.Task[(TestResult.Value, Map[String, TestResult.Value])]] =
     (multiJvmTests, multiJvmMarker, java, multiTestOptions, sourceDirectory, streams) map {
-    (tests, marker, javaBin, options, srcDir, s) => {
-      val results =
-        if (tests.isEmpty)
-          List()
-        else tests.map {
-          case (name, classes) => multi(name, classes, marker, javaBin, options, srcDir, false, s.log)
-        }
-      (Tests.overall(results.map(_._2)), results.toMap)
+      (tests, marker, javaBin, options, srcDir, s) => runMultiJvmTests(tests, marker, javaBin, options, srcDir, s.log)
     }
-  }
 
   def multiJvmTestOnly = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
     (multiJvmTests, multiJvmMarker, java, multiTestOptions, sourceDirectory, streams, result) map {
-      case (map, marker, javaBin, options, srcDir, s, (tests, extraOptions)) =>
-        tests foreach { name =>
-          val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
-          val classes = map.getOrElse(name, Seq.empty)
-          if (classes.isEmpty) s.log.info("No tests to run.")
-          else multi(name, classes, marker, javaBin, opts, srcDir, false, s.log)
-        }
+      case (allTests, marker, javaBin, options, srcDir, s, (selected, extraOptions)) =>
+        val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
+        val tests = selected flatMap { name => allTests.get(name) map ((name, _)) }
+        val results = runMultiJvmTests(tests.toMap, marker, javaBin, opts, srcDir, s.log)
+        Tests.showResults(s.log, results, "No tests to run for MultiJvm")
     }
+  }
+
+  def runMultiJvmTests(tests: Map[String, Seq[String]], marker: String, javaBin: File, options: Options,
+                       srcDir: File, log: Logger): (TestResult.Value, Map[String, TestResult.Value]) = {
+    val results =
+      if (tests.isEmpty)
+        List()
+      else tests.map {
+        case (name, classes) => multi(name, classes, marker, javaBin, options, srcDir, false, log)
+      }
+    (Tests.overall(results.map(_._2)), results.toMap)
   }
 
   def multiJvmRun: sbt.Project.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
