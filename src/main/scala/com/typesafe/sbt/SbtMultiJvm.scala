@@ -258,28 +258,32 @@ object SbtMultiJvm extends Plugin {
 
   def multiNodeExecuteTestsTask: sbt.Project.Initialize[sbt.Task[(TestResult.Value, Map[String, TestResult.Value])]] =
     (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams) map {
-      case (tests, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s) => {
-        val results =
-          if (tests.isEmpty)
-            List()
-          else tests.map {
-            case (name, classes) => multiNode(name, classes, marker, java, options, srcDir, false, jarName,
-              hostsAndUsers, javas, targetDir, s.log)
-        }
-        (Tests.overall(results.map(_._2)), results.toMap)
-      }
-  }
+      case (tests, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s) => 
+        runMultiNodeTests(tests, marker, java, options, srcDir, jarName, hostsAndUsers, javas, targetDir, s.log)
+    }
 
   def multiNodeTestOnlyTask = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
     (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams, result) map {
-      case (map, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s, (tests, extraOptions)) =>
-        tests foreach { name =>
-          val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
-          val classes = map.getOrElse(name, Seq.empty)
-          if (classes.isEmpty) s.log.info("No tests to run.")
-          else multiNode(name, classes, marker, java, opts, srcDir, false, jarName, hostsAndUsers, javas, targetDir, s.log)
-        }
+      case (allTests, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s, (selected, extraOptions)) =>
+        val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
+        val tests = selected flatMap { name => allTests.get(name) map ((name, _)) }
+        val results = runMultiNodeTests(tests.toMap, marker, java, options, srcDir, jarName, hostsAndUsers, javas, targetDir, s.log)
+        Tests.showResults(s.log, results, "No tests to run for MultiNode")
     }
+  }
+
+  def runMultiNodeTests(tests: Map[String, Seq[String]], marker: String, java: String, options: Options,
+                        srcDir: File, jarName: String, hostsAndUsers: IndexedSeq[String], 
+                        javas: IndexedSeq[String], targetDir: String, 
+                        log: Logger): (TestResult.Value, Map[String, TestResult.Value]) = {
+    val results =
+      if (tests.isEmpty)
+        List()
+      else tests.map {
+        case (name, classes) => multiNode(name, classes, marker, java, options, srcDir, false, jarName,
+          hostsAndUsers, javas, targetDir, log)
+      }
+    (Tests.overall(results.map(_._2)), results.toMap)
   }
 
   def multiNode(name: String, classes: Seq[String], marker: String, defaultJava: String, options: Options, srcDir: File,
