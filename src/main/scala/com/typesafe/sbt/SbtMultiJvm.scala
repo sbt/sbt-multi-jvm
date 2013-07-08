@@ -201,7 +201,6 @@ object SbtMultiJvm extends Plugin {
       else tests.map {
         case (name, classes) => multi(name, classes, marker, javaBin, options, srcDir, false, log)
       }
-    // TODO Replace Nil with summaries (no idea from where to get these)
     Tests.Output(Tests.overall(results map { case (_, suiteResult) => suiteResult.result }), results.toMap, Nil)
   }
 
@@ -254,8 +253,7 @@ object SbtMultiJvm extends Plugin {
       case _ => None
     }
     failures foreach (log.error(_))
-    // TODO Fill SuiteResult with proper counts
-    def suiteResult(testResult: TestResult.Value) = new SuiteResult(testResult, 0, 0, 0, 0, 0, 0, 0)
+    def suiteResult(testResult: TestResult.Value) = new SuiteResult(testResult, processes.size - failures.size, failures.size, 0, 0, 0, 0, 0)
     (name, if(!failures.isEmpty) suiteResult(TestResult.Failed) else suiteResult(TestResult.Passed))
   }
 
@@ -286,7 +284,6 @@ object SbtMultiJvm extends Plugin {
         case (name, classes) => multiNode(name, classes, marker, java, options, srcDir, false, jarName,
           hostsAndUsers, javas, targetDir, log)
       }
-    // TODO Replace Nil with summaries (no idea from where to get these)
     Tests.Output(Tests.overall(results map { case (_, suiteResult) => suiteResult.result }), results.toMap, Nil)
   }
 
