@@ -19,9 +19,10 @@ addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.9.2")
 sbtPlugin := true
 
 publishTo := {
-  import Classpaths._
-  val repo = if (isSnapshot.value) sbtPluginSnapshots else sbtPluginReleases
-  Some(repo)
+  val baseUrl = "http://scalasbt.artifactoryonline.com/scalasbt"
+  val kind = if (isSnapshot.value) "snapshots" else "releases"
+  val name = s"sbt-plugin-$kind"
+  Some(Resolver.url(name, url(s"$baseUrl/$name"))(Resolver.ivyStylePatterns))
 }
 
 publishMavenStyle := false
