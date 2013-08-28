@@ -22,7 +22,7 @@ publishTo := {
   val baseUrl = "http://scalasbt.artifactoryonline.com/scalasbt"
   val kind = if (isSnapshot.value) "snapshots" else "releases"
   val name = s"sbt-plugin-$kind"
-  Some(Resolver.url(name, url(s"$baseUrl/$name"))(Resolver.ivyStylePatterns))
+  Some(Resolver.url(s"publish-$name", url(s"$baseUrl/$name"))(Resolver.ivyStylePatterns))
 }
 
 publishMavenStyle := false
