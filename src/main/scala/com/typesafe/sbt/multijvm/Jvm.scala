@@ -7,7 +7,7 @@ package com.typesafe.sbt.multijvm
 import sbt._
 import java.io.File
 import java.lang.{ProcessBuilder => JProcessBuilder}
-import java.io.{BufferedReader, InputStream, InputStreamReader, OutputStream}
+import sbt.Process
 
 object Jvm {
   def startJvm(javaBin: File, jvmOptions: Seq[String], runOptions: Seq[String], logger: Logger, connectInput: Boolean) = {
@@ -18,7 +18,7 @@ object Jvm {
     val java = javaBin.toString
     val command = (java :: options.toList).toArray
     val builder = new JProcessBuilder(command: _*)
-    Process(builder).run(JvmIO(logger, connectInput))
+    Process(builder).run(logger, connectInput)
   }
 
   /**
@@ -39,12 +39,12 @@ object Jvm {
     val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)
     val builder = new JProcessBuilder(command: _*)
     sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
-    val process = Process(builder).run(JvmIO(sbtLogger, false))
+    val process = Process(builder).run(sbtLogger, false)
     if (process.exitValue() == 0) {
       val command: Array[String] = Array("rsync", "-ace", "ssh", osPath(jarName), hostAndUser +":" + remoteDir +"/")
       val builder = new JProcessBuilder(command: _*)
       sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
-      Process(builder).run(JvmIO(sbtLogger, false))
+      Process(builder).run(sbtLogger, false)
     }
     else {
       process
@@ -60,7 +60,7 @@ object Jvm {
     val command = Array("ssh", hostAndUser, ("cd " :: (remoteDir :: (" ; " :: javaCommand))).mkString(" "))
     sbtLogger.debug("Jvm.forkRemoteJava about to run " + command.mkString(" "))
     val builder = new JProcessBuilder(command: _*)
-    Process(builder).run(JvmIO(logger, connectInput))
+    Process(builder).run(logger, connectInput)
   }
 }
 
@@ -80,55 +80,4 @@ final class JvmLogger(name: String) extends BasicLogger {
   def control(event: ControlEvent.Value, message: => String) = log(Level.Info, message)
 
   def logAll(events: Seq[LogEvent]) = System.out.synchronized { events.foreach(log) }
-}
-
-object JvmIO {
-  def apply(log: Logger, connectInput: Boolean) =
-    new ProcessIO(
-        writeInput    = input(connectInput),
-        processOutput = processStream(log, Level.Info),
-        processError  = processStream(log, Level.Error),
-        inheritInput  = {_ => false})
-
-  final val BufferSize = 8192
-
-  def processStream(log: Logger, level: Level.Value): InputStream => Unit =
-    processStream(line => log.log(level, line))
-
-  def processStream(processLine: String => Unit): InputStream => Unit = in => {
-    val reader = new BufferedReader(new InputStreamReader(in))
-    def process {
-      val line = reader.readLine()
-      if (line != null) {
-        processLine(line)
-        process
-      }
-    }
-    process
-  }
-
-  def input(connectInput: Boolean): OutputStream => Unit =
-    if (connectInput) connectSystemIn else ignoreOutputStream
-
-  def connectSystemIn(out: OutputStream) = transfer(System.in, out)
-
-  def ignoreOutputStream = (out: OutputStream) => ()
-
-  def transfer(in: InputStream, out: OutputStream): Unit = {
-    try {
-      val buffer = new Array[Byte](BufferSize)
-      def read {
-        val byteCount = in.read(buffer)
-        if (Thread.interrupted) throw new InterruptedException
-        if (byteCount > 0) {
-          out.write(buffer, 0, byteCount)
-          out.flush()
-          read
-        }
-      }
-      read
-    } catch {
-      case _: InterruptedException => ()
-    }
-  }
 }
