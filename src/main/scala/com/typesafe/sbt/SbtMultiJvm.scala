@@ -73,7 +73,7 @@ object SbtMultiJvm extends Plugin {
   private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
     "No tests to run for " + display(scoped)
 
-  lazy val multiJvmSettings: Seq[Project.Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ internalMultiJvmSettings)
+  lazy val multiJvmSettings: Seq[Def.Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ internalMultiJvmSettings)
 
   private def internalMultiJvmSettings = assemblySettings ++ Seq(
     multiJvmMarker := "MultiJvm",
@@ -179,7 +179,7 @@ object SbtMultiJvm extends Plugin {
     (mainClass: String) => Seq("-cp", cp, mainClass)
   }
 
-  def multiJvmExecuteTests: sbt.Project.Initialize[sbt.Task[Tests.Output]] =
+  def multiJvmExecuteTests: Def.Initialize[sbt.Task[Tests.Output]] =
     (multiJvmTests, multiJvmMarker, java, multiTestOptions, sourceDirectory, streams) map {
       (tests, marker, javaBin, options, srcDir, s) => runMultiJvmTests(tests, marker, javaBin, options, srcDir, s.log)
     }
@@ -204,7 +204,7 @@ object SbtMultiJvm extends Plugin {
     Tests.Output(Tests.overall(results map { case (_, suiteResult) => suiteResult.result }), results.toMap, Nil)
   }
 
-  def multiJvmRun: sbt.Project.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
+  def multiJvmRun: Def.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
     (result, multiJvmApps, multiJvmMarker, java, multiRunOptions, sourceDirectory, connectInput, multiNodeHosts, streams) map {
       (name, map, marker, javaBin, options, srcDir, connect, hostsAndUsers, s) => {
         val classes = map.getOrElse(name, Seq.empty)
@@ -257,7 +257,7 @@ object SbtMultiJvm extends Plugin {
     (name, if(!failures.isEmpty) suiteResult(TestResult.Failed) else suiteResult(TestResult.Passed))
   }
 
-  def multiNodeExecuteTestsTask: sbt.Project.Initialize[sbt.Task[Tests.Output]] =
+  def multiNodeExecuteTestsTask: Def.Initialize[sbt.Task[Tests.Output]] =
     (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams) map {
       case (tests, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s) =>
         runMultiNodeTests(tests, marker, java, options, srcDir, jarName, hostsAndUsers, javas, targetDir, s.log)
@@ -300,7 +300,8 @@ object SbtMultiJvm extends Plugin {
         (testClass + " sync", Jvm.syncJar(testJar, hostAndUser, targetDir, log))
     }
     val syncResult = processExitCodes(name, syncProcesses, log)
-    if (syncResult._2 == TestResult.Passed) {
+    // if (syncResult._2 == TestResult.Passed) { TODO: Added .result because of warning "comparing values of types sbt.SuiteResult and sbt.TestResult.Value using `==' will always yield false"
+    if (syncResult._2.result == TestResult.Passed) {
       val processes = classesHostsJavas.zipWithIndex map {
         case ((testClass, hostAndUser, java), index) => {
           val jvmName = "JVM-" + (index + 1)
