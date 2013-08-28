@@ -3,7 +3,7 @@ organization := "com.typesafe.sbt"
 
 name := "sbt-multi-jvm"
 
-version := "0.3.7-SNAPSHOT"
+version := "0.3.7"
 
 scalacOptions ++= Seq(
   "-unchecked",
