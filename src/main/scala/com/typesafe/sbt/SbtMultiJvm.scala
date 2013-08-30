@@ -231,7 +231,7 @@ object SbtMultiJvm extends Plugin {
         val jvmLogger = new JvmLogger(jvmName)
         val className = multiSimpleName(testClass)
         val optionsFile = (srcDir ** (className + ".opts")).get.headOption
-        val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.split(" ").toList) getOrElse (Seq.empty[String])
+        val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.replace("\\n", " ").split("\\s+").toList) getOrElse (Seq.empty[String])
         val multiNodeOptions = getMultiNodeCommandLineOptions(hosts, index, classes.size)
         val allJvmOptions = options.jvm ++ multiNodeOptions ++ optionsFromFile ++ options.extra(className)
         val runOptions = options.run(testClass)
@@ -308,7 +308,7 @@ object SbtMultiJvm extends Plugin {
           val jvmLogger = new JvmLogger(jvmName)
           val className = multiSimpleName(testClass)
           val optionsFile = (srcDir ** (className + ".opts")).get.headOption
-          val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.split(" ").toList) getOrElse (Seq.empty[String])
+          val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.replace("\\n", " ").split("\\s+").toList) getOrElse (Seq.empty[String])
           val multiNodeOptions = getMultiNodeCommandLineOptions(hosts, index, classes.size)
           val allJvmOptions = options.jvm ++ optionsFromFile ++ options.extra(className) ++ multiNodeOptions
           val runOptions = options.run(testClass)
