@@ -4,19 +4,19 @@
 
 package com.typesafe.sbt
 
+import com.typesafe.sbt.multijvm.{Jvm, JvmLogger}
 import sbt._
 import Keys._
-import complete.Parsers._
-import complete.Parser
-import Parser._
 import Cache.seqFormat
 import sbinary.DefaultProtocol.StringFormat
 import java.io.File
 import java.lang.Boolean.getBoolean
+
 import scala.Console.{ GREEN, RESET }
-import sbtassembly.Plugin._
+
+import sbtassembly.AssemblyPlugin.assemblySettings
+import sbtassembly.{MergeStrategy, AssemblyKeys}
 import AssemblyKeys._
-import com.typesafe.sbt.multijvm._
 
 object SbtMultiJvm extends Plugin {
   case class Options(jvm: Seq[String], extra: String => Seq[String], run: String => Seq[String])
@@ -55,7 +55,7 @@ object SbtMultiJvm extends Plugin {
     val multiJvmTestJarName = TaskKey[String]("multi-jvm-test-jar-name")
 
     val multiNodeTest = TaskKey[Unit]("multi-node-test")
-    val multiNodeExecuteTests = TaskKey[(TestResult.Value, Map[String, TestResult.Value])]("multi-node-execute-tests")
+    val multiNodeExecuteTests = TaskKey[Tests.Output]("multi-node-execute-tests")
     val multiNodeTestOnly = InputKey[Unit]("multi-node-test-only")
 
     val multiNodeHosts = SettingKey[Seq[String]]("multi-node-hosts")
@@ -103,9 +103,11 @@ object SbtMultiJvm extends Plugin {
     test <<= (executeTests, streams) map { (results, s) => Tests.showResults(s.log, results, "No tests to run for MultiJvm") },
     run <<= multiJvmRun,
     runMain <<= multiJvmRun,
+
     // TODO try to make sure that this is only generated on a need to have basis
-    multiJvmTestJar <<= (assembly, outputPath in assembly) map { (task, file) => file.getAbsolutePath } ,
-    multiJvmTestJarName <<= (outputPath in assembly) map { (file) => file.getAbsolutePath },
+    multiJvmTestJar <<= (assembly, assemblyOutputPath in assembly) map { (task, file) => file.getAbsolutePath } ,
+    multiJvmTestJarName <<= (assemblyOutputPath in assembly) map { (file) => file.getAbsolutePath },
+
     multiNodeTest <<= (multiNodeExecuteTests, streams, resolvedScoped, state) map { (results, s, scoped, st) =>
       implicit val display = Project.showContextKey(st)
       Tests.showResults(s.log, results, noTestsMessage(scoped)) },
@@ -122,19 +124,22 @@ object SbtMultiJvm extends Plugin {
     // here follows the assembly parts of the config
     // don't run the tests when creating the assembly
     test in assembly := {},
+
     // we want everything including the tests and test frameworks
     fullClasspath in assembly <<= fullClasspath in MultiJvm,
+
     // the first class wins just like a classpath
     // just concatenate conflicting text files
-    mergeStrategy in assembly <<= (mergeStrategy in assembly) {
-      (old) => {
+    assemblyMergeStrategy in assembly := {
         case n if n.endsWith(".class") => MergeStrategy.first
         case n if n.endsWith(".txt") => MergeStrategy.concat
         case n if n.endsWith("NOTICE") => MergeStrategy.concat
-        case n => old(n)
-      }
+        case n => (assemblyMergeStrategy in assembly).value.apply(n)
     },
-    jarName in assembly <<= (name, scalaVersion, version) { _ + "_" + _ + "-" + _ + "-multi-jvm-assembly.jar" }
+
+    assemblyJarName in assembly := {
+      name + "_" + scalaVersion + "-" + version + "-multi-jvm-assembly.jar"
+    }
   )
 
   def collectMultiJvm(discovered: Seq[String], marker: String): Map[String, Seq[String]] = {
@@ -178,15 +183,15 @@ object SbtMultiJvm extends Plugin {
     (mainClass: String) => Seq("-cp", cp, mainClass)
   }
 
-  def multiJvmExecuteTests: sbt.Project.Initialize[sbt.Task[(TestResult.Value, Map[String, TestResult.Value])]] =
+  def multiJvmExecuteTests: Def.Initialize[sbt.Task[Tests.Output]] =
     (multiJvmTests, multiJvmMarker, java, multiTestOptions, sourceDirectory, streams) map {
       (tests, marker, javaBin, options, srcDir, s) => runMultiJvmTests(tests, marker, javaBin, options, srcDir, s.log)
     }
 
-  def multiJvmTestOnly = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
+  def multiJvmTestOnly: Def.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
     (multiJvmTests, multiJvmMarker, java, multiTestOptions, sourceDirectory, streams, result) map {
-      case (allTests, marker, javaBin, options, srcDir, s, (selected, extraOptions)) =>
-        val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
+      case (allTests, marker, javaBin, options, srcDir, s, (selected, _extraOptions)) =>
+        val opts = options.copy(extra = (s: String) => { options.extra(s) ++ _extraOptions })
         val tests = selected flatMap { name => allTests.get(name) map ((name, _)) }
         val results = runMultiJvmTests(tests.toMap, marker, javaBin, opts, srcDir, s.log)
         Tests.showResults(s.log, results, "No tests to run for MultiJvm")
@@ -194,17 +199,17 @@ object SbtMultiJvm extends Plugin {
   }
 
   def runMultiJvmTests(tests: Map[String, Seq[String]], marker: String, javaBin: File, options: Options,
-                       srcDir: File, log: Logger): (TestResult.Value, Map[String, TestResult.Value]) = {
+                       srcDir: File, log: Logger): Tests.Output = {
     val results =
       if (tests.isEmpty)
         List()
       else tests.map {
-        case (name, classes) => multi(name, classes, marker, javaBin, options, srcDir, false, log)
+        case (_name, classes) => multi(_name, classes, marker, javaBin, options, srcDir, false, log)
       }
-    (Tests.overall(results.map(_._2)), results.toMap)
+    Tests.Output(Tests.overall(results.map(_._2)), Map.empty, results.map(result => Tests.Summary("multi-jvm", result._1)))
   }
 
-  def multiJvmRun: sbt.Project.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
+  def multiJvmRun: Def.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))) { result =>
     (result, multiJvmApps, multiJvmMarker, java, multiRunOptions, sourceDirectory, connectInput, multiNodeHosts, streams) map {
       (name, map, marker, javaBin, options, srcDir, connect, hostsAndUsers, s) => {
         val classes = map.getOrElse(name, Seq.empty)
@@ -226,7 +231,7 @@ object SbtMultiJvm extends Plugin {
     val classesHostsJavas = getClassesHostsJavas(classes, IndexedSeq.empty, IndexedSeq.empty, "")
     val hosts = classesHostsJavas.map(_._2)
     val processes = classes.zipWithIndex map {
-      case (testClass, index) => {
+      case (testClass, index) =>
         val jvmName = "JVM-" + (index + 1)
         val jvmLogger = new JvmLogger(jvmName)
         val className = multiSimpleName(testClass)
@@ -239,35 +244,34 @@ object SbtMultiJvm extends Plugin {
         log.debug("Starting %s for %s" format (jvmName, testClass))
         log.debug("  with JVM options: %s" format allJvmOptions.mkString(" "))
         (testClass, Jvm.startJvm(javaBin, allJvmOptions, runOptions, jvmLogger, connectInput))
-      }
     }
     processExitCodes(name, processes, log)
   }
 
   def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResult.Value) = {
     val exitCodes = processes map {
-      case (testClass, process) => (testClass, process.exitValue)
+      case (testClass, process) => (testClass, process.exitValue())
     }
     val failures = exitCodes flatMap {
       case (testClass, exit) if exit > 0 => Some("Failed: " + testClass)
       case _ => None
     }
-    failures foreach (log.error(_))
-    (name, if(!failures.isEmpty) TestResult.Failed else TestResult.Passed)
+    failures foreach(log.error(_))
+    (name, if(failures.nonEmpty) TestResult.Failed else TestResult.Passed)
   }
 
-  def multiNodeExecuteTestsTask: sbt.Project.Initialize[sbt.Task[(TestResult.Value, Map[String, TestResult.Value])]] =
+  def multiNodeExecuteTestsTask: Def.Initialize[sbt.Task[Tests.Output]] =
     (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams) map {
-      case (tests, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s) => 
-        runMultiNodeTests(tests, marker, java, options, srcDir, jarName, hostsAndUsers, javas, targetDir, s.log)
+      case (tests, marker, _java, options, srcDir, (_jarName, (hostsAndUsers, javas), targetDir), s) =>
+        runMultiNodeTests(tests, marker, _java, options, srcDir, _jarName, hostsAndUsers, javas, targetDir, s.log)
     }
 
-  def multiNodeTestOnlyTask = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
-    (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams, result) map {
-      case (allTests, marker, java, options, srcDir, (jarName, (hostsAndUsers, javas), targetDir), s, (selected, extraOptions)) =>
-        val opts = options.copy(extra = (s: String) => { options.extra(s) ++ extraOptions })
+  def multiNodeTestOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
+    (multiJvmTests, multiJvmMarker, multiNodeJavaName, multiNodeTestOptions, sourceDirectory, multiNodeWorkAround, streams, result).map {
+      case (allTests, marker, _java, options, srcDir, (_jarName, (hostsAndUsers, javas), targetDir), s, (selected, _extraOptions)) =>
+        val opts = options.copy(extra = (s: String) => { options.extra(s) ++ _extraOptions })
         val tests = selected flatMap { name => allTests.get(name) map ((name, _)) }
-        val results = runMultiNodeTests(tests.toMap, marker, java, options, srcDir, jarName, hostsAndUsers, javas, targetDir, s.log)
+        val results = runMultiNodeTests(tests.toMap, marker, _java, options, srcDir, _jarName, hostsAndUsers, javas, targetDir, s.log)
         Tests.showResults(s.log, results, "No tests to run for MultiNode")
     }
   }
@@ -275,15 +279,15 @@ object SbtMultiJvm extends Plugin {
   def runMultiNodeTests(tests: Map[String, Seq[String]], marker: String, java: String, options: Options,
                         srcDir: File, jarName: String, hostsAndUsers: IndexedSeq[String], 
                         javas: IndexedSeq[String], targetDir: String, 
-                        log: Logger): (TestResult.Value, Map[String, TestResult.Value]) = {
+                        log: Logger): Tests.Output = {
     val results =
       if (tests.isEmpty)
         List()
       else tests.map {
-        case (name, classes) => multiNode(name, classes, marker, java, options, srcDir, false, jarName,
+        case (_name, classes) => multiNode(_name, classes, marker, java, options, srcDir, false, jarName,
           hostsAndUsers, javas, targetDir, log)
       }
-    (Tests.overall(results.map(_._2)), results.toMap)
+    Tests.Output(Tests.overall(results.map(_._2)), Map.empty, results.map(result => Tests.Summary("multi-jvm", result._1)))
   }
 
   def multiNode(name: String, classes: Seq[String], marker: String, defaultJava: String, options: Options, srcDir: File,
@@ -335,7 +339,8 @@ object SbtMultiJvm extends Plugin {
   private def getClassesHostsJavas(classes: Seq[String], hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String],
                                    defaultJava: String): IndexedSeq[(String, String, String)] = {
     val max = classes.length
-    (classes, padSeqOrDefaultTo(hostsAndUsers, "localhost", max), padSeqOrDefaultTo(javas, defaultJava, max)).zipped.toIndexedSeq
+    val tuple = (classes.toIndexedSeq, padSeqOrDefaultTo(hostsAndUsers, "localhost", max), padSeqOrDefaultTo(javas, defaultJava, max))
+    tuple.zipped.map { case (className: String, hostAndUser: String, _java: String) => (className, hostAndUser, _java) }
   }
 
   private def getMultiNodeCommandLineOptions(hosts: Seq[String], index: Int, maxNodes: Int): Seq[String] = {
