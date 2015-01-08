@@ -34,7 +34,7 @@ object SbtMultiJvm extends Plugin {
 
     val java = TaskKey[File]("java")
 
-    val jvmOptions = SettingKey[Seq[String]]("jvm-options")
+    val jvmOptions = TaskKey[Seq[String]]("jvm-options")
     val extraOptions = SettingKey[String => Seq[String]]("extra-options")
 
     val scalatestRunner = SettingKey[String]("scalatest-runner")
