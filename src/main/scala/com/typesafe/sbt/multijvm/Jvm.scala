@@ -4,10 +4,10 @@
 
 package com.typesafe.sbt.multijvm
 
-import sbt._
 import java.io.File
 import java.lang.{ProcessBuilder => JProcessBuilder}
-import sbt.Process
+
+import sbt.{Process, _}
 
 object Jvm {
   def startJvm(javaBin: File, jvmOptions: Seq[String], runOptions: Seq[String], logger: Logger, connectInput: Boolean) = {
