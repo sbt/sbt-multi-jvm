@@ -12,7 +12,7 @@ Add plugin
 
 To use the plugin in a project add the following to `project/plugins.sbt`:
 
-    addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.3.8")
+    addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.3.9")
 
 
 More information
@@ -23,9 +23,22 @@ For more information about using sbt-multi-jvm see the
 
 [akka-docs]: http://akka.io/docs/akka/snapshot/dev/multi-jvm-testing.html
 
+Releasing
+---------
+Notes for releasing this sbt-multi-jvm. This plugin is hosted under the sbt organisation on bintray.
+When publishing you should use a bintray account which can write to this organisation, by providing the following 
+credentials in `$HOME/.bintray/.credentials`
+
+```
+  realm = Bintray API Realm
+  host = api.bintray.com
+  user = USERNAME
+  password = TOKEN
+```
+
 License
 -------
-Copyright 2012 Typesafe, Inc.
+Copyright 2012-2015 Typesafe, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
