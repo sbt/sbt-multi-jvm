@@ -1,3 +1,4 @@
+import bintray.Keys._
 
 sbtPlugin := true
 
@@ -9,11 +10,12 @@ version := "0.3.9-SNAPSHOT"
 
 publishMavenStyle := false
 
-publishTo <<= (version) { version: String =>
-  val scalasbt = "http://scalasbt.artifactoryonline.com/scalasbt/"
-  val (name, u) = if (version.contains("-SNAPSHOT")) ("sbt-plugin-snapshots", scalasbt+"sbt-plugin-snapshots")
-    else ("sbt-plugin-releases", scalasbt+"sbt-plugin-releases")
-  Some(Resolver.url(name, url(u))(Resolver.ivyStylePatterns))
-}
+repository in bintray := "sbt-plugins"
+
+bintrayOrganization in bintray := Some("sbt")
+
+bintrayPublishSettings
+
+licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html"))
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.12.0")
