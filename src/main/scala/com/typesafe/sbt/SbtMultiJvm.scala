@@ -18,7 +18,8 @@ import sbtassembly.AssemblyPlugin.assemblySettings
 import sbtassembly.{MergeStrategy, AssemblyKeys}
 import AssemblyKeys._
 
-object SbtMultiJvm extends Plugin {
+object SbtMultiJvm extends AutoPlugin {
+
   case class Options(jvm: Seq[String], extra: String => Seq[String], run: String => Seq[String])
 
   object MultiJvmKeys {
@@ -69,6 +70,12 @@ object SbtMultiJvm extends Plugin {
   }
 
   import MultiJvmKeys._
+
+  override def trigger = allRequirements
+
+  override def requires = plugins.JvmPlugin
+
+  override def projectSettings = multiJvmSettings
 
   private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
     "No tests to run for " + display(scoped)
