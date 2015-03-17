@@ -1,1 +1,2 @@
-addSbtPlugin("me.lessis" % "bintray-sbt" % "0.1.2")
+addSbtPlugin("com.typesafe.sbt" % "sbt-git"     % "0.7.1")
+addSbtPlugin("me.lessis"        % "bintray-sbt" % "0.2.0")
