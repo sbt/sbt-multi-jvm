@@ -69,6 +69,8 @@ object SbtMultiJvm extends AutoPlugin {
     val multiNodeWorkAround = TaskKey[(String, (IndexedSeq[String], IndexedSeq[String]), String)]("multi-node-workaround")
   }
 
+  val autoImport = MultiJvmKeys
+
   import MultiJvmKeys._
 
   override def trigger = allRequirements
