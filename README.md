@@ -25,9 +25,7 @@ For more information about using sbt-multi-jvm see the
 
 Releasing
 ---------
-Notes for releasing this sbt-multi-jvm. This plugin is hosted under the sbt organisation on bintray.
-When publishing you should use a bintray account which can write to this organisation, by providing the following 
-credentials in `$HOME/.bintray/.credentials`
+This plugin is hosted under the `sbt-multi-jvm` organisation on bintray. When publishing you should use a bintray account which can write to this organisation, by providing the following credentials in `$HOME/.bintray/.credentials`
 
 ```
   realm = Bintray API Realm
