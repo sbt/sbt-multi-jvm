@@ -73,8 +73,6 @@ object MultiJvmPlugin extends AutoPlugin {
 
   import MultiJvmKeys._
 
-  override def trigger = allRequirements
-
   override def requires = plugins.JvmPlugin
 
   override def projectSettings = multiJvmSettings
