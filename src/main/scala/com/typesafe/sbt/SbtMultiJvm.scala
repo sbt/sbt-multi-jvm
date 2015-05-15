@@ -18,7 +18,7 @@ import sbtassembly.AssemblyPlugin.assemblySettings
 import sbtassembly.{MergeStrategy, AssemblyKeys}
 import AssemblyKeys._
 
-object SbtMultiJvm extends AutoPlugin {
+object MultiJvmPlugin extends AutoPlugin {
 
   case class Options(jvm: Seq[String], extra: String => Seq[String], run: String => Seq[String])
 
