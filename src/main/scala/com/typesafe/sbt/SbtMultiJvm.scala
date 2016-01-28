@@ -278,7 +278,7 @@ object MultiJvmPlugin extends AutoPlugin {
       case (allTests, marker, _java, options, srcDir, (_jarName, (hostsAndUsers, javas), targetDir), s, (selected, _extraOptions)) =>
         val opts = options.copy(extra = (s: String) => { options.extra(s) ++ _extraOptions })
         val tests = selected flatMap { name => allTests.get(name) map ((name, _)) }
-        val results = runMultiNodeTests(tests.toMap, marker, _java, options, srcDir, _jarName, hostsAndUsers, javas, targetDir, s.log)
+        val results = runMultiNodeTests(tests.toMap, marker, _java, opts, srcDir, _jarName, hostsAndUsers, javas, targetDir, s.log)
         Tests.showResults(s.log, results, "No tests to run for MultiNode")
     }
   }
