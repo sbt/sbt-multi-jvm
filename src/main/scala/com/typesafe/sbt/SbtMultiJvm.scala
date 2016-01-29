@@ -145,7 +145,7 @@ object MultiJvmPlugin extends AutoPlugin {
     },
 
     assemblyJarName in assembly := {
-      name + "_" + scalaVersion + "-" + version + "-multi-jvm-assembly.jar"
+      name.value + "_" + scalaVersion.value + "-" + version.value + "-multi-jvm-assembly.jar"
     }
   )
 
