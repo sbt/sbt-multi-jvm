@@ -2,7 +2,7 @@ sbt-multi-jvm
 =============
 
 An [sbt] plugin for running scalatest tests in multiple JVMs. This plugin
-requires sbt 0.12.x
+requires sbt 0.13.5 or higher
 
 [sbt]: http://www.scala-sbt.org
 
