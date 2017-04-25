@@ -197,10 +197,11 @@ object MultiJvmPlugin extends AutoPlugin {
 
   def multiJvmTestOnly: Def.Initialize[sbt.InputTask[Unit]] = InputTask(loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))) { result =>
     (multiJvmTests, multiJvmMarker, java, multiTestOptions, sourceDirectory, streams, result) map {
-      case (allTests, marker, javaBin, options, srcDir, s, (selected, _extraOptions)) =>
+      case (allTests, marker, javaBin, options, srcDir, s, (selection, _extraOptions)) =>
         val opts = options.copy(extra = (s: String) => { options.extra(s) ++ _extraOptions })
-        val tests = selected flatMap { name => allTests.get(name) map ((name, _)) }
-        val results = runMultiJvmTests(tests.toMap, marker, javaBin, opts, srcDir, s.log)
+        val filters = selection.map(GlobFilter(_))
+        val tests = allTests.filterKeys(name => filters.exists(_.accept(name)))
+        val results = runMultiJvmTests(tests, marker, javaBin, opts, srcDir, s.log)
         Tests.showResults(s.log, results, "No tests to run for MultiJvm")
     }
   }
