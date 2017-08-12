@@ -21,7 +21,7 @@ More information
 For more information about using sbt-multi-jvm see the
 [akka documentation][akka-docs].
 
-[akka-docs]: http://akka.io/docs/akka/snapshot/dev/multi-jvm-testing.html
+[akka-docs]: http://doc.akka.io/docs/akka/current/scala/multi-jvm-testing.html#multi-jvm-testing
 
 Releasing
 ---------
