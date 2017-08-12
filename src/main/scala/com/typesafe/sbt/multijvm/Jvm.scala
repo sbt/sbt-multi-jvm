@@ -7,7 +7,8 @@ package com.typesafe.sbt.multijvm
 import java.io.File
 import java.lang.{ProcessBuilder => JProcessBuilder}
 
-import sbt.{Process, _}
+import sbt._
+import com.typesafe.sbt.multijvm.Compat.{Process, _}
 
 object Jvm {
   def startJvm(javaBin: File, jvmOptions: Seq[String], runOptions: Seq[String], logger: Logger, connectInput: Boolean) = {
@@ -33,7 +34,7 @@ object Jvm {
   /**
    * convert to proper path for the operating system
   **/
-  def osPath(path:String) = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lines.mkString else path
+  def osPath(path:String) = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lineStream.mkString else path
 
   def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger) : Process = {
     val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)

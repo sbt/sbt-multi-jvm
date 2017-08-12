@@ -5,10 +5,10 @@
 package com.typesafe.sbt
 
 import com.typesafe.sbt.multijvm.{Jvm, JvmLogger}
+import com.typesafe.sbt.multijvm.Compat.{Process, _}
+import com.typesafe.sbt.multijvm.Compat.Implicits._
 import sbt._
 import Keys._
-import Cache.seqFormat
-import sbinary.DefaultProtocol.StringFormat
 import java.io.File
 import java.lang.Boolean.getBoolean
 
@@ -78,7 +78,7 @@ object MultiJvmPlugin extends AutoPlugin {
   override def projectSettings = multiJvmSettings
 
   private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
-    "No tests to run for " + display(scoped)
+    "No tests to run for " + display.show(scoped)
 
   lazy val multiJvmSettings: Seq[Def.Setting[_]] = inConfig(MultiJvm)(Defaults.configSettings ++ internalMultiJvmSettings)
 
@@ -229,12 +229,21 @@ object MultiJvmPlugin extends AutoPlugin {
   def multiJvmRun: Def.Initialize[sbt.InputTask[Unit]] = InputTask.createDyn(
     loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))
   ) {
-      Def.task { result =>
+      Def.task {
         val s = streams.value
-        val classes = multiJvmApps.value.getOrElse(result, Seq.empty)
-        Def.task {
-          if (classes.isEmpty) s.log.info("No apps to run.")
-          else multi(result, classes, multiJvmMarker.value, java.value, multiRunOptions.value, sourceDirectory.value, connectInput.value, s.log)
+        val apps = multiJvmApps.value
+        val j = java.value
+        val c = connectInput.value
+        val dir = sourceDirectory.value
+        val options = multiRunOptions.value
+        val marker = multiJvmMarker.value
+
+        result => {
+          val classes = apps.getOrElse(result, Seq.empty)
+          Def.task {
+            if (classes.isEmpty) s.log.info("No apps to run.")
+            else multi(result, classes, marker, j, options, dir, c, s.log)
+          }
         }
       }
     }
@@ -245,7 +254,7 @@ object MultiJvmPlugin extends AutoPlugin {
   }
 
   def multi(name: String, classes: Seq[String], marker: String, javaBin: File, options: Options, srcDir: File,
-            input: Boolean, log: Logger): (String, TestResult.Value) = {
+            input: Boolean, log: Logger): (String, TestResultValue) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, IndexedSeq.empty, IndexedSeq.empty, "")
@@ -268,7 +277,7 @@ object MultiJvmPlugin extends AutoPlugin {
     processExitCodes(name, processes, log)
   }
 
-  def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResult.Value) = {
+  def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResultValue) = {
     val exitCodes = processes map {
       case (testClass, process) => (testClass, process.exitValue())
     }
@@ -317,7 +326,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   def multiNode(name: String, classes: Seq[String], marker: String, defaultJava: String, options: Options, srcDir: File,
                 input: Boolean, testJar: String, hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String], targetDir: String,
-                log: Logger): (String, TestResult.Value) = {
+                log: Logger): (String, TestResultValue) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, hostsAndUsers, javas, defaultJava)
