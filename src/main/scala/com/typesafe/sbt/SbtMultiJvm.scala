@@ -33,7 +33,7 @@ object MultiJvmPlugin extends AutoPlugin {
     val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
     val multiJvmAppNames = TaskKey[Seq[String]]("multi-jvm-app-names")
 
-    val java = TaskKey[File]("java")
+    val multiJvmJavaCommand = TaskKey[File]("multi-jvm-java-command")
 
     val jvmOptions = TaskKey[Seq[String]]("jvm-options")
     val extraOptions = SettingKey[String => Seq[String]]("extra-options")
@@ -95,7 +95,7 @@ object MultiJvmPlugin extends AutoPlugin {
     multiJvmTestNames := (multiJvmTests.map(_.keys.toSeq) storeAs multiJvmTestNames triggeredBy compile).value,
     multiJvmApps := collectMultiJvm(discoveredMainClasses.value, multiJvmMarker.value),
     multiJvmAppNames := (multiJvmApps.map(_.keys.toSeq) storeAs multiJvmAppNames triggeredBy compile).value,
-    java := javaCommand(javaHome.value, "java"),
+    multiJvmJavaCommand := javaCommand(javaHome.value, "java"),
     jvmOptions := Seq.empty,
     extraOptions := { (name: String) => Seq.empty },
     scalatestRunner := "org.scalatest.tools.Runner",
@@ -196,7 +196,7 @@ object MultiJvmPlugin extends AutoPlugin {
   }
 
   def multiJvmExecuteTests: Def.Initialize[sbt.Task[Tests.Output]] = Def.task {
-    runMultiJvmTests(multiJvmTests.value, multiJvmMarker.value, java.value, multiTestOptions.value, sourceDirectory.value, streams.value.log)
+    runMultiJvmTests(multiJvmTests.value, multiJvmMarker.value, multiJvmJavaCommand.value, multiTestOptions.value, sourceDirectory.value, streams.value.log)
   }
 
   def multiJvmTestOnly: Def.Initialize[sbt.InputTask[Unit]] = InputTask.createDyn(
@@ -209,7 +209,7 @@ object MultiJvmPlugin extends AutoPlugin {
       val filters = selection.map(GlobFilter(_))
       val tests = multiJvmTests.value.filterKeys(name => filters.exists(_.accept(name)))
       Def.task {
-        val results = runMultiJvmTests(tests, multiJvmMarker.value, java.value, opts, sourceDirectory.value, s.log)
+        val results = runMultiJvmTests(tests, multiJvmMarker.value, multiJvmJavaCommand.value, opts, sourceDirectory.value, s.log)
         showResults(s.log, results, "No tests to run for MultiJvm")
       }
     }
@@ -232,7 +232,7 @@ object MultiJvmPlugin extends AutoPlugin {
       Def.task {
         val s = streams.value
         val apps = multiJvmApps.value
-        val j = java.value
+        val j = multiJvmJavaCommand.value
         val c = connectInput.value
         val dir = sourceDirectory.value
         val options = multiRunOptions.value
