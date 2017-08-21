@@ -1,20 +1,24 @@
+lazy val `sbt-multi-jvm` = project in file(".")
+
 sbtPlugin := true
 
 organization := "com.typesafe.sbt"
 name := "sbt-multi-jvm"
 
-bintrayRepository := "sbt-plugins"
-bintrayOrganization := Some("sbt-multi-jvm")
+// sbt cross build
+crossSbtVersions := Seq("0.13.16", "1.0.0")
 
-publishMavenStyle := false
-licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html"))
+// fixed in https://github.com/sbt/sbt/pull/3397 (for sbt 0.13.17)
+sbtBinaryVersion in update := (sbtBinaryVersion in pluginCrossBuild).value
 
+// dependencies
 libraryDependencies += Defaults.sbtPluginExtra(
   "com.eed3si9n" % "sbt-assembly" % "0.14.5",
   (sbtBinaryVersion in pluginCrossBuild).value,
   (scalaBinaryVersion in pluginCrossBuild).value
 )
 
+// compile settings
 scalacOptions ++= List(
   "-unchecked",
   "-deprecation",
@@ -29,5 +33,27 @@ scalacOptions ++= {
     Nil
 }
 
-versionWithGit
-git.baseVersion := "0.3.12"
+// publish settings
+publishMavenStyle := false
+bintrayOrganization := Some("sbt-multi-jvm")
+bintrayRepository := "sbt-plugins"
+bintrayPackage := "sbt-multi-jvm"
+bintrayReleaseOnPublish := false
+licenses += "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")
+
+// release settings
+import ReleaseTransformations._
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,
+  inquireVersions,
+  runClean,
+  releaseStepCommandAndRemaining("^ compile"), // still no tests =(
+  setReleaseVersion,
+  commitReleaseVersion,
+  tagRelease,
+  releaseStepCommandAndRemaining("^ publish"),
+  releaseStepTask(bintrayRelease),
+  setNextVersion,
+  commitNextVersion,
+  pushChanges
+)
