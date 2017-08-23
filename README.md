@@ -1,5 +1,6 @@
-sbt-multi-jvm
-=============
+# sbt-multi-jvm
+
+[![Download](https://api.bintray.com/packages/sbt-multi-jvm/sbt-plugins/sbt-multi-jvm/images/download.svg) ](https://bintray.com/sbt-multi-jvm/sbt-plugins/sbt-multi-jvm/_latestVersion)
 
 An [sbt] plugin for running scalatest tests in multiple JVMs. This plugin
 requires sbt 0.13.5 or higher
@@ -7,24 +8,22 @@ requires sbt 0.13.5 or higher
 [sbt]: http://www.scala-sbt.org
 
 
-Add plugin
-----------
+## Add plugin
 
 To use the plugin in a project add the following to `project/plugins.sbt`:
 
     addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.3.11")
 
 
-More information
-----------------
+## More information
 
 For more information about using sbt-multi-jvm see the
 [akka documentation][akka-docs].
 
 [akka-docs]: http://doc.akka.io/docs/akka/current/scala/multi-jvm-testing.html#multi-jvm-testing
 
-Releasing
----------
+## Releasing
+
 This plugin is hosted under the `sbt-multi-jvm` organisation on bintray. When publishing you should use a bintray account which can write to this organisation, by providing the following credentials in `$HOME/.bintray/.credentials`
 
 ```
@@ -34,9 +33,9 @@ This plugin is hosted under the `sbt-multi-jvm` organisation on bintray. When pu
   password = TOKEN
 ```
 
-License
--------
-Copyright 2012-2015 Typesafe, Inc.
+## License
+
+Copyright 2012-2017 Typesafe, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
