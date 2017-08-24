@@ -37,6 +37,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
     val jvmOptions = TaskKey[Seq[String]]("jvm-options")
     val extraOptions = SettingKey[String => Seq[String]]("extra-options")
+    val multiJvmCreateLogger = TaskKey[String => Logger]("multi-jvm-create-logger")
 
     val scalatestRunner = SettingKey[String]("scalatest-runner")
     val scalatestOptions = SettingKey[Seq[String]]("scalatest-options")
@@ -98,6 +99,7 @@ object MultiJvmPlugin extends AutoPlugin {
     multiJvmJavaCommand := javaCommand(javaHome.value, "java"),
     jvmOptions := Seq.empty,
     extraOptions := { (name: String) => Seq.empty },
+    multiJvmCreateLogger := { (name: String) => new JvmLogger(name) },
     scalatestRunner := "org.scalatest.tools.Runner",
     scalatestOptions := defaultScalatestOptions,
     scalatestClasspath := managedClasspath.value.filter(_.data.name.contains("scalatest")),
@@ -196,7 +198,7 @@ object MultiJvmPlugin extends AutoPlugin {
   }
 
   def multiJvmExecuteTests: Def.Initialize[sbt.Task[Tests.Output]] = Def.task {
-    runMultiJvmTests(multiJvmTests.value, multiJvmMarker.value, multiJvmJavaCommand.value, multiTestOptions.value, sourceDirectory.value, streams.value.log)
+    runMultiJvmTests(multiJvmTests.value, multiJvmMarker.value, multiJvmJavaCommand.value, multiTestOptions.value, sourceDirectory.value, multiJvmCreateLogger.value, streams.value.log)
   }
 
   def multiJvmTestOnly: Def.Initialize[sbt.InputTask[Unit]] = InputTask.createDyn(
@@ -209,19 +211,19 @@ object MultiJvmPlugin extends AutoPlugin {
       val filters = selection.map(GlobFilter(_))
       val tests = multiJvmTests.value.filterKeys(name => filters.exists(_.accept(name)))
       Def.task {
-        val results = runMultiJvmTests(tests, multiJvmMarker.value, multiJvmJavaCommand.value, opts, sourceDirectory.value, s.log)
+        val results = runMultiJvmTests(tests, multiJvmMarker.value, multiJvmJavaCommand.value, opts, sourceDirectory.value, multiJvmCreateLogger.value, s.log)
         showResults(s.log, results, "No tests to run for MultiJvm")
       }
     }
   }
 
   def runMultiJvmTests(tests: Map[String, Seq[String]], marker: String, javaBin: File, options: Options,
-                       srcDir: File, log: Logger): Tests.Output = {
+                       srcDir: File, createLogger: String => Logger, log: Logger): Tests.Output = {
     val results =
       if (tests.isEmpty)
         List()
       else tests.map {
-        case (_name, classes) => multi(_name, classes, marker, javaBin, options, srcDir, false, log)
+        case (_name, classes) => multi(_name, classes, marker, javaBin, options, srcDir, false, createLogger, log)
       }
     Tests.Output(Tests.overall(results.map(_._2)), Map.empty, results.map(result => Tests.Summary("multi-jvm", result._1)))
   }
@@ -237,12 +239,13 @@ object MultiJvmPlugin extends AutoPlugin {
         val dir = sourceDirectory.value
         val options = multiRunOptions.value
         val marker = multiJvmMarker.value
+        val createLogger = multiJvmCreateLogger.value
 
         result => {
           val classes = apps.getOrElse(result, Seq.empty)
           Def.task {
             if (classes.isEmpty) s.log.info("No apps to run.")
-            else multi(result, classes, marker, j, options, dir, c, s.log)
+            else multi(result, classes, marker, j, options, dir, c, createLogger, s.log)
           }
         }
       }
@@ -254,7 +257,7 @@ object MultiJvmPlugin extends AutoPlugin {
   }
 
   def multi(name: String, classes: Seq[String], marker: String, javaBin: File, options: Options, srcDir: File,
-            input: Boolean, log: Logger): (String, TestResultValue) = {
+            input: Boolean, createLogger: String => Logger, log: Logger): (String, TestResultValue) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, IndexedSeq.empty, IndexedSeq.empty, "")
@@ -262,7 +265,7 @@ object MultiJvmPlugin extends AutoPlugin {
     val processes = classes.zipWithIndex map {
       case (testClass, index) =>
         val jvmName = "JVM-" + (index + 1)
-        val jvmLogger = new JvmLogger(jvmName)
+        val jvmLogger = createLogger(jvmName)
         val className = multiSimpleName(testClass)
         val optionsFile = (srcDir ** (className + ".opts")).get.headOption
         val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.replace("\\n", " ").split("\\s+").toList) getOrElse (Seq.empty[String])
@@ -291,7 +294,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   def multiNodeExecuteTestsTask: Def.Initialize[sbt.Task[Tests.Output]] = Def.task {
     val (_jarName, (hostsAndUsers, javas), targetDir) = multiNodeWorkAround.value
-    runMultiNodeTests(multiJvmTests.value, multiJvmMarker.value, multiNodeJavaName.value, multiNodeTestOptions.value, sourceDirectory.value, _jarName, hostsAndUsers, javas, targetDir, streams.value.log)
+    runMultiNodeTests(multiJvmTests.value, multiJvmMarker.value, multiNodeJavaName.value, multiNodeTestOptions.value, sourceDirectory.value, _jarName, hostsAndUsers, javas, targetDir, multiJvmCreateLogger.value, streams.value.log)
   }
 
   def multiNodeTestOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask.createDyn(
@@ -304,29 +307,29 @@ object MultiJvmPlugin extends AutoPlugin {
       val opts = options.copy(extra = (s: String) => { options.extra(s) ++ _extraOptions })
       val tests = selected flatMap { name => multiJvmTests.value.get(name) map ((name, _)) }
       Def.task {
-        val results = runMultiNodeTests(tests.toMap, multiJvmMarker.value, multiNodeJavaName.value, opts, sourceDirectory.value, _jarName, hostsAndUsers, javas, targetDir, s.log)
+        val results = runMultiNodeTests(tests.toMap, multiJvmMarker.value, multiNodeJavaName.value, opts, sourceDirectory.value, _jarName, hostsAndUsers, javas, targetDir, multiJvmCreateLogger.value, s.log)
         showResults(s.log, results, "No tests to run for MultiNode")
       }
     }
   }
 
   def runMultiNodeTests(tests: Map[String, Seq[String]], marker: String, java: String, options: Options,
-                        srcDir: File, jarName: String, hostsAndUsers: IndexedSeq[String], 
-                        javas: IndexedSeq[String], targetDir: String, 
-                        log: Logger): Tests.Output = {
+                        srcDir: File, jarName: String, hostsAndUsers: IndexedSeq[String],
+                        javas: IndexedSeq[String], targetDir: String,
+                        createLogger: String => Logger, log: Logger): Tests.Output = {
     val results =
       if (tests.isEmpty)
         List()
       else tests.map {
         case (_name, classes) => multiNode(_name, classes, marker, java, options, srcDir, false, jarName,
-          hostsAndUsers, javas, targetDir, log)
+          hostsAndUsers, javas, targetDir, createLogger, log)
       }
     Tests.Output(Tests.overall(results.map(_._2)), Map.empty, results.map(result => Tests.Summary("multi-jvm", result._1)))
   }
 
   def multiNode(name: String, classes: Seq[String], marker: String, defaultJava: String, options: Options, srcDir: File,
                 input: Boolean, testJar: String, hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String], targetDir: String,
-                log: Logger): (String, TestResultValue) = {
+                createLogger: String => Logger, log: Logger): (String, TestResultValue) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, hostsAndUsers, javas, defaultJava)
@@ -341,7 +344,7 @@ object MultiJvmPlugin extends AutoPlugin {
       val processes = classesHostsJavas.zipWithIndex map {
         case ((testClass, hostAndUser, java), index) => {
           val jvmName = "JVM-" + (index + 1)
-          val jvmLogger = new JvmLogger(jvmName)
+          val jvmLogger = createLogger(jvmName)
           val className = multiSimpleName(testClass)
           val optionsFile = (srcDir ** (className + ".opts")).get.headOption
           val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.replace("\\n", " ").split("\\s+").toList) getOrElse (Seq.empty[String])

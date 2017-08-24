@@ -65,7 +65,7 @@ object Jvm {
   }
 }
 
-final class JvmLogger(name: String) extends BasicLogger {
+class JvmBasicLogger(name: String) extends BasicLogger {
   def jvm(message: String) = "[%s] %s" format (name, message)
 
   def log(level: Level.Value, message: => String) = System.out.synchronized {
@@ -82,3 +82,5 @@ final class JvmLogger(name: String) extends BasicLogger {
 
   def logAll(events: Seq[LogEvent]) = System.out.synchronized { events.foreach(log) }
 }
+
+final class JvmLogger(name: String) extends JvmBasicLogger(name)
