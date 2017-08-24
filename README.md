@@ -12,7 +12,7 @@ requires sbt 0.13.5 or higher
 
 To use the plugin in a project add the following to `project/plugins.sbt`:
 
-    addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.3.11")
+    addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.4.0")
 
 
 ## More information
