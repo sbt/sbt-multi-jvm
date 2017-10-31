@@ -35,7 +35,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
     val multiJvmJavaCommand = TaskKey[File]("multi-jvm-java-command")
 
-    val jvmOptions = TaskKey[Seq[String]]("jvm-options")
+    val jvmOptions = TaskKey[Seq[String]]("jvm-options") // TODO: shouldn't that be regular `javaOptions`?
     val extraOptions = SettingKey[String => Seq[String]]("extra-options")
     val multiJvmCreateLogger = TaskKey[String => Logger]("multi-jvm-create-logger")
 
@@ -48,7 +48,6 @@ object MultiJvmPlugin extends AutoPlugin {
     val multiNodeTestOptions = TaskKey[Options]("multi-node-test-options")
 
     val appScalaOptions = TaskKey[String => Seq[String]]("app-scala-options")
-    val connectInput = SettingKey[Boolean]("connect-input")
     val multiRunOptions = TaskKey[Options]("multi-run-options")
 
     val multiRunCopiedClassLocation = SettingKey[File]("multi-run-copied-class-location")
