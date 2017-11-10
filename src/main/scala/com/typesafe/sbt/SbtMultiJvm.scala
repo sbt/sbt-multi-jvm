@@ -75,6 +75,8 @@ object MultiJvmPlugin extends AutoPlugin {
 
   override def requires = plugins.JvmPlugin
 
+  override def projectConfigurations = Seq(MultiJvm)
+
   override def projectSettings = multiJvmSettings
 
   private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
