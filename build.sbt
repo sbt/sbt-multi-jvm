@@ -6,7 +6,7 @@ organization := "com.typesafe.sbt"
 name := "sbt-multi-jvm"
 
 // sbt cross build
-crossSbtVersions := Seq("0.13.16", "1.0.0")
+crossSbtVersions := Seq("0.13.16", "1.0.4")
 
 // fixed in https://github.com/sbt/sbt/pull/3397 (for sbt 0.13.17)
 sbtBinaryVersion in update := (sbtBinaryVersion in pluginCrossBuild).value
