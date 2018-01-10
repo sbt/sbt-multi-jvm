@@ -263,9 +263,9 @@ object MultiJvmPlugin extends AutoPlugin {
     val hosts = classesHostsJavas.map(_._2)
     val processes = classes.zipWithIndex map {
       case (testClass, index) =>
-        val jvmName = "JVM-" + (index + 1)
-        val jvmLogger = createLogger(jvmName)
         val className = multiSimpleName(testClass)
+        val jvmName = "JVM-" + (index + 1) + "-" + className
+        val jvmLogger = createLogger(jvmName)
         val optionsFile = (srcDir ** (className + ".opts")).get.headOption
         val optionsFromFile = optionsFile map (IO.read(_)) map (_.trim.replace("\\n", " ").split("\\s+").toList) getOrElse (Seq.empty[String])
         val multiNodeOptions = getMultiNodeCommandLineOptions(hosts, index, classes.size)
