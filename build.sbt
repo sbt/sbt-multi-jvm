@@ -13,7 +13,7 @@ sbtBinaryVersion in update := (sbtBinaryVersion in pluginCrossBuild).value
 
 // dependencies
 libraryDependencies += Defaults.sbtPluginExtra(
-  "com.eed3si9n" % "sbt-assembly" % "0.14.5",
+  "com.eed3si9n" % "sbt-assembly" % "0.14.10",
   (sbtBinaryVersion in pluginCrossBuild).value,
   (scalaBinaryVersion in pluginCrossBuild).value
 )
