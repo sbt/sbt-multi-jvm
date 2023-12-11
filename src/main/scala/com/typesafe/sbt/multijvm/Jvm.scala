@@ -8,7 +8,7 @@ import java.io.File
 import java.lang.{ProcessBuilder => JProcessBuilder}
 
 import sbt._
-import com.typesafe.sbt.multijvm.Compat.{Process, _}
+import scala.sys.process.Process
 
 object Jvm {
   def startJvm(javaBin: File, jvmOptions: Seq[String], runOptions: Seq[String], logger: Logger, connectInput: Boolean) = {

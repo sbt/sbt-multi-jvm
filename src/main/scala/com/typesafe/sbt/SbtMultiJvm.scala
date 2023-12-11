@@ -5,17 +5,17 @@
 package com.typesafe.sbt
 
 import com.typesafe.sbt.multijvm.{Jvm, JvmLogger}
-import com.typesafe.sbt.multijvm.Compat.{Process, _}
-import com.typesafe.sbt.multijvm.Compat.Implicits._
 import sbt._
 import Keys._
 import java.io.File
 import java.lang.Boolean.getBoolean
 
 import scala.Console.{ GREEN, RESET }
+import scala.sys.process.Process
 
 import sbtassembly.AssemblyPlugin.assemblySettings
 import sbtassembly.{MergeStrategy, AssemblyKeys}
+import sjsonnew.BasicJsonProtocol._
 import AssemblyKeys._
 
 object MultiJvmPlugin extends AutoPlugin {
@@ -91,7 +91,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   private def internalMultiJvmSettings = assemblySettings ++ Seq(
     multiJvmMarker := "MultiJvm",
-    loadedTestFrameworks := (loadedTestFrameworks in Test).value,
+    loadedTestFrameworks := (Test / loadedTestFrameworks).value,
     definedTests := Defaults.detectTests.value,
     multiJvmTests := collectMultiJvm(definedTests.value.map(_.name), multiJvmMarker.value),
     multiJvmTestNames := (multiJvmTests.map(_.keys.toSeq) storeAs multiJvmTestNames triggeredBy compile).value,
@@ -120,8 +120,8 @@ object MultiJvmPlugin extends AutoPlugin {
     runMain := multiJvmRun.evaluated,
 
     // TODO try to make sure that this is only generated on a need to have basis
-    multiJvmTestJar := (assemblyOutputPath in assembly).map(_.getAbsolutePath).dependsOn(assembly).value,
-    multiJvmTestJarName := (assemblyOutputPath in assembly).value.getAbsolutePath,
+    multiJvmTestJar := (assembly / assemblyOutputPath).map(_.getAbsolutePath).dependsOn(assembly).value,
+    multiJvmTestJarName := (assembly / assemblyOutputPath).value.getAbsolutePath,
 
     multiNodeTest := {
       implicit val display = Project.showContextKey(state.value)
@@ -138,21 +138,21 @@ object MultiJvmPlugin extends AutoPlugin {
 
     // here follows the assembly parts of the config
     // don't run the tests when creating the assembly
-    test in assembly := {},
+    assembly / test := {},
 
     // we want everything including the tests and test frameworks
-    fullClasspath in assembly := (fullClasspath in MultiJvm).value,
+    assembly / fullClasspath := (MultiJvm / fullClasspath).value,
 
     // the first class wins just like a classpath
     // just concatenate conflicting text files
-    assemblyMergeStrategy in assembly := {
+    assembly / assemblyMergeStrategy := {
         case n if n.endsWith(".class") => MergeStrategy.first
         case n if n.endsWith(".txt") => MergeStrategy.concat
         case n if n.endsWith("NOTICE") => MergeStrategy.concat
-        case n => (assemblyMergeStrategy in assembly).value.apply(n)
+        case n => (assembly / assemblyMergeStrategy).value.apply(n)
     },
 
-    assemblyJarName in assembly := {
+    assembly / assemblyJarName := {
       name.value + "_" + scalaVersion.value + "-" + version.value + "-multi-jvm-assembly.jar"
     }
   )
@@ -258,7 +258,7 @@ object MultiJvmPlugin extends AutoPlugin {
   }
 
   def multi(name: String, classes: Seq[String], marker: String, javaBin: File, options: Options, srcDir: File,
-            input: Boolean, createLogger: String => Logger, log: Logger): (String, TestResultValue) = {
+            input: Boolean, createLogger: String => Logger, log: Logger): (String, TestResult) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, IndexedSeq.empty, IndexedSeq.empty, "")
@@ -281,7 +281,7 @@ object MultiJvmPlugin extends AutoPlugin {
     processExitCodes(name, processes, log)
   }
 
-  def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResultValue) = {
+  def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResult) = {
     val exitCodes = processes map {
       case (testClass, process) => (testClass, process.exitValue())
     }
@@ -330,7 +330,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   def multiNode(name: String, classes: Seq[String], marker: String, defaultJava: String, options: Options, srcDir: File,
                 input: Boolean, testJar: String, hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String], targetDir: String,
-                createLogger: String => Logger, log: Logger): (String, TestResultValue) = {
+                createLogger: String => Logger, log: Logger): (String, TestResult) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, hostsAndUsers, javas, defaultJava)
