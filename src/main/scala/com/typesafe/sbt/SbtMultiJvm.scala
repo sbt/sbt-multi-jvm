@@ -5,17 +5,17 @@
 package com.typesafe.sbt
 
 import com.typesafe.sbt.multijvm.{Jvm, JvmLogger}
-import com.typesafe.sbt.multijvm.Compat.{Process, _}
-import com.typesafe.sbt.multijvm.Compat.Implicits._
 import sbt._
 import Keys._
 import java.io.File
 import java.lang.Boolean.getBoolean
 
 import scala.Console.{ GREEN, RESET }
+import scala.sys.process.Process
 
 import sbtassembly.AssemblyPlugin.assemblySettings
 import sbtassembly.{MergeStrategy, AssemblyKeys}
+import sjsonnew.BasicJsonProtocol._
 import AssemblyKeys._
 
 object MultiJvmPlugin extends AutoPlugin {
@@ -258,7 +258,7 @@ object MultiJvmPlugin extends AutoPlugin {
   }
 
   def multi(name: String, classes: Seq[String], marker: String, javaBin: File, options: Options, srcDir: File,
-            input: Boolean, createLogger: String => Logger, log: Logger): (String, TestResultValue) = {
+            input: Boolean, createLogger: String => Logger, log: Logger): (String, TestResult) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, IndexedSeq.empty, IndexedSeq.empty, "")
@@ -281,7 +281,7 @@ object MultiJvmPlugin extends AutoPlugin {
     processExitCodes(name, processes, log)
   }
 
-  def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResultValue) = {
+  def processExitCodes(name: String, processes: Seq[(String, Process)], log: Logger): (String, TestResult) = {
     val exitCodes = processes map {
       case (testClass, process) => (testClass, process.exitValue())
     }
@@ -330,7 +330,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   def multiNode(name: String, classes: Seq[String], marker: String, defaultJava: String, options: Options, srcDir: File,
                 input: Boolean, testJar: String, hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String], targetDir: String,
-                createLogger: String => Logger, log: Logger): (String, TestResultValue) = {
+                createLogger: String => Logger, log: Logger): (String, TestResult) = {
     val logName = "* " + name
     log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
     val classesHostsJavas = getClassesHostsJavas(classes, hostsAndUsers, javas, defaultJava)
