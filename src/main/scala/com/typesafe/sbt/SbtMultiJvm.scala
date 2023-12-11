@@ -91,7 +91,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   private def internalMultiJvmSettings = assemblySettings ++ Seq(
     multiJvmMarker := "MultiJvm",
-    loadedTestFrameworks := (loadedTestFrameworks in Test).value,
+    loadedTestFrameworks := (Test / loadedTestFrameworks).value,
     definedTests := Defaults.detectTests.value,
     multiJvmTests := collectMultiJvm(definedTests.value.map(_.name), multiJvmMarker.value),
     multiJvmTestNames := (multiJvmTests.map(_.keys.toSeq) storeAs multiJvmTestNames triggeredBy compile).value,
@@ -120,8 +120,8 @@ object MultiJvmPlugin extends AutoPlugin {
     runMain := multiJvmRun.evaluated,
 
     // TODO try to make sure that this is only generated on a need to have basis
-    multiJvmTestJar := (assemblyOutputPath in assembly).map(_.getAbsolutePath).dependsOn(assembly).value,
-    multiJvmTestJarName := (assemblyOutputPath in assembly).value.getAbsolutePath,
+    multiJvmTestJar := (assembly / assemblyOutputPath).map(_.getAbsolutePath).dependsOn(assembly).value,
+    multiJvmTestJarName := (assembly / assemblyOutputPath).value.getAbsolutePath,
 
     multiNodeTest := {
       implicit val display = Project.showContextKey(state.value)
@@ -138,21 +138,21 @@ object MultiJvmPlugin extends AutoPlugin {
 
     // here follows the assembly parts of the config
     // don't run the tests when creating the assembly
-    test in assembly := {},
+    assembly / test := {},
 
     // we want everything including the tests and test frameworks
-    fullClasspath in assembly := (fullClasspath in MultiJvm).value,
+    assembly / fullClasspath := (MultiJvm / fullClasspath).value,
 
     // the first class wins just like a classpath
     // just concatenate conflicting text files
-    assemblyMergeStrategy in assembly := {
+    assembly / assemblyMergeStrategy := {
         case n if n.endsWith(".class") => MergeStrategy.first
         case n if n.endsWith(".txt") => MergeStrategy.concat
         case n if n.endsWith("NOTICE") => MergeStrategy.concat
-        case n => (assemblyMergeStrategy in assembly).value.apply(n)
+        case n => (assembly / assemblyMergeStrategy).value.apply(n)
     },
 
-    assemblyJarName in assembly := {
+    assembly / assemblyJarName := {
       name.value + "_" + scalaVersion.value + "-" + version.value + "-multi-jvm-assembly.jar"
     }
   )
