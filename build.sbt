@@ -37,3 +37,10 @@ scalacOptions ++= List(
 
 // publish settings
 licenses += "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")
+
+developers += Developer(
+  "sbt-multi-jvm ",
+  "Sbt Multi-JVM Contributors",
+  "",
+  url("https://github.com/sbt/sbt-multi-jvm/graphs/contributors")
+)
