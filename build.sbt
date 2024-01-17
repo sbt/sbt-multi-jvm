@@ -1,5 +1,7 @@
 lazy val `sbt-multi-jvm` = project in file(".")
 
+homepage := Some(url("https://github.com/sbt/sbt-multi-jvm"))
+
 // Customise sbt-dynver's behaviour to make it work with tags which aren't v-prefixed
 ThisBuild / dynverVTagPrefix := true
 
