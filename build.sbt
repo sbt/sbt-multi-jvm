@@ -12,7 +12,7 @@ Global / onLoad := (Global / onLoad).value.andThen { s =>
   s
 }
 
-crossScalaVersions := Seq("2.12.18")
+crossScalaVersions := Seq("2.13.12")
 organization := "com.github.sbt"
 name := "sbt-multi-jvm"
 enablePlugins(SbtPlugin)
