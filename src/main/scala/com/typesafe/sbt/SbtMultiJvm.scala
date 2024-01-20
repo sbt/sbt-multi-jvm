@@ -371,7 +371,7 @@ object MultiJvmPlugin extends AutoPlugin {
     if (realSeq.size >= max)
       realSeq
     else
-      (realSeq /: (0 until (max - realSeq.size)))((mySeq, pos) => mySeq :+ realSeq(pos % realSeq.size))
+      (0 until (max - realSeq.size).foldLeft(realSeq))((mySeq, pos) => mySeq :+ realSeq(pos % realSeq.size))
   }
 
   private def getClassesHostsJavas(classes: Seq[String], hostsAndUsers: IndexedSeq[String], javas: IndexedSeq[String],
