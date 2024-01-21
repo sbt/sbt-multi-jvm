@@ -22,7 +22,11 @@ object MultiJvmPlugin extends AutoPlugin {
 
   case class Options(jvm: Seq[String], extra: String => Seq[String], run: String => Seq[String])
 
-  object MultiJvmKeys {
+  object autoImport extends MultiJvmKeys
+
+  import autoImport._
+
+  trait MultiJvmKeys {
     val MultiJvm = config("multi-jvm") extend(Test)
 
     val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
@@ -69,9 +73,10 @@ object MultiJvmPlugin extends AutoPlugin {
     val multiNodeWorkAround = TaskKey[(String, (IndexedSeq[String], IndexedSeq[String]), String)]("multi-node-workaround")
   }
 
-  val autoImport = MultiJvmKeys
+  @deprecated("Use MultiJvmPlugin.autoImport instead", "0.6.0")
+  object MultiJvmKeys extends MultiJvmKeys
 
-  import MultiJvmKeys._
+  import autoImport._
 
   override def requires = plugins.JvmPlugin
 
