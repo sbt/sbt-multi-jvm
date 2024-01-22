@@ -2,9 +2,6 @@ lazy val `sbt-multi-jvm` = project in file(".")
 
 homepage := Some(url("https://github.com/sbt/sbt-multi-jvm"))
 
-// Customise sbt-dynver's behaviour to make it work with tags which aren't v-prefixed
-ThisBuild / dynverVTagPrefix := true
-
 // Sanity-check: assert that version comes from a tag (e.g. not a too-shallow clone)
 // https://github.com/dwijnand/sbt-dynver/#sanity-checking-the-version
 Global / onLoad := (Global / onLoad).value.andThen { s =>
