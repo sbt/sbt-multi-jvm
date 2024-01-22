@@ -12,7 +12,9 @@ Global / onLoad := (Global / onLoad).value.andThen { s =>
   s
 }
 
-crossScalaVersions := Seq("2.12.18")
+lazy val scala212 = "2.12.18"
+ThisBuild / crossScalaVersions := Seq(scala212)
+ThisBuild / scalaVersion := scala212
 organization := "com.github.sbt"
 name := "sbt-multi-jvm"
 enablePlugins(SbtPlugin)
@@ -45,4 +47,34 @@ developers += Developer(
   "Sbt Multi-JVM Contributors",
   "",
   url("https://github.com/sbt/sbt-multi-jvm/graphs/contributors")
+)
+
+ThisBuild / githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "scripted")))
+
+ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
+ThisBuild / githubWorkflowPublishTargetBranches :=
+  Seq(
+    RefPredicate.StartsWith(Ref.Tag("v")),
+    RefPredicate.Equals(Ref.Branch("main"))
+  )
+ThisBuild / githubWorkflowPublish := Seq(
+  WorkflowStep.Sbt(
+    commands = List("ci-release"),
+    name = Some("Publish project"),
+    env = Map(
+      "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+      "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+      "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+      "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+    )
+  )
+)
+
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
+
+ThisBuild / githubWorkflowJavaVersions := Seq(
+  JavaSpec.temurin("8"),
+  JavaSpec.temurin("11"),
+  JavaSpec.temurin("17"),
+  JavaSpec.temurin("21")
 )
