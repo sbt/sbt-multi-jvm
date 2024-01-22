@@ -7,5 +7,6 @@ package com.typesafe
 package object sbt {
 
   // For backwards compatibility
+  @deprecated("Use MultiJvm instead", "0.6.0")
   val SbtMultiJvm = MultiJvmPlugin
 }
