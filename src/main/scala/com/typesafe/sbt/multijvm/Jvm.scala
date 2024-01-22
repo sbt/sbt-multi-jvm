@@ -5,13 +5,19 @@
 package com.typesafe.sbt.multijvm
 
 import java.io.File
-import java.lang.{ProcessBuilder => JProcessBuilder}
+import java.lang.{ ProcessBuilder => JProcessBuilder }
 
 import sbt._
 import scala.sys.process.Process
 
 object Jvm {
-  def startJvm(javaBin: File, jvmOptions: Seq[String], runOptions: Seq[String], logger: Logger, connectInput: Boolean) = {
+  def startJvm(
+      javaBin: File,
+      jvmOptions: Seq[String],
+      runOptions: Seq[String],
+      logger: Logger,
+      connectInput: Boolean
+  ) = {
     forkJava(javaBin, jvmOptions ++ runOptions, logger, connectInput)
   }
 
@@ -24,37 +30,43 @@ object Jvm {
 
   /**
    * check if the current operating system is some OS
-  **/
-  def isOS(os:String) = try {
+   */
+  def isOS(os: String) = try {
     System.getProperty("os.name").toUpperCase startsWith os.toUpperCase
   } catch {
-    case _ : Throwable => false
+    case _: Throwable => false
   }
 
   /**
    * convert to proper path for the operating system
-  **/
-  def osPath(path:String) = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lineStream.mkString else path
+   */
+  def osPath(path: String) = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lineStream.mkString else path
 
-  def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger) : Process = {
+  def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger): Process = {
     val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)
     val builder = new JProcessBuilder(command: _*)
     sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
     val process = Process(builder).run(sbtLogger, false)
     if (process.exitValue() == 0) {
-      val command: Array[String] = Array("rsync", "-ace", "ssh", osPath(jarName), hostAndUser +":" + remoteDir +"/")
+      val command: Array[String] = Array("rsync", "-ace", "ssh", osPath(jarName), hostAndUser + ":" + remoteDir + "/")
       val builder = new JProcessBuilder(command: _*)
       sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
       Process(builder).run(sbtLogger, false)
-    }
-    else {
+    } else
       process
-    }
   }
 
-  def forkRemoteJava(java: String, jvmOptions: Seq[String], appOptions: Seq[String], jarName: String,
-                     hostAndUser: String, remoteDir: String, logger: Logger, connectInput: Boolean,
-                     sbtLogger: Logger): Process = {
+  def forkRemoteJava(
+      java: String,
+      jvmOptions: Seq[String],
+      appOptions: Seq[String],
+      jarName: String,
+      hostAndUser: String,
+      remoteDir: String,
+      logger: Logger,
+      connectInput: Boolean,
+      sbtLogger: Logger
+  ): Process = {
     sbtLogger.debug("About to use java " + java)
     val shortJarName = new File(jarName).getName
     val javaCommand = List(List(java), jvmOptions, List("-cp", shortJarName), appOptions).flatten
