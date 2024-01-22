@@ -77,11 +77,11 @@ object MultiJvmPlugin extends AutoPlugin {
   @deprecated("Use MultiJvmPlugin.autoImport instead", "0.6.0")
   object MultiJvmKeys extends MultiJvmKeys
 
-  override def requires = plugins.JvmPlugin
+  override lazy val requires = plugins.JvmPlugin
 
-  override def projectConfigurations = Seq(MultiJvm)
+  override lazy val projectConfigurations = Seq(MultiJvm)
 
-  override def projectSettings = multiJvmSettings
+  override lazy val projectSettings = multiJvmSettings
 
   private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
     "No tests to run for " + display.show(scoped)
@@ -95,7 +95,7 @@ object MultiJvmPlugin extends AutoPlugin {
       .copy(printNoTests = TestResultLogger.const(_ info noTestsMessage))
       .run(log, results, "")
 
-  private def internalMultiJvmSettings = assemblySettings ++ Seq(
+  private lazy val internalMultiJvmSettings = assemblySettings ++ Seq(
     multiJvmMarker := "MultiJvm",
     loadedTestFrameworks := (Test / loadedTestFrameworks).value,
     definedTests := Defaults.detectTests.value,
@@ -190,7 +190,7 @@ object MultiJvmPlugin extends AutoPlugin {
     new File(new File(home, "bin"), name)
   }
 
-  def defaultScalatestOptions: Seq[String] =
+  lazy val defaultScalatestOptions: Seq[String] =
     if (getBoolean("sbt.log.noformat")) Seq("-oW") else Seq("-o")
 
   def scalaOptionsForScalatest(
@@ -220,7 +220,7 @@ object MultiJvmPlugin extends AutoPlugin {
     (mainClass: String) => Seq("-cp", cp, mainClass)
   }
 
-  def multiJvmExecuteTests: Def.Initialize[sbt.Task[Tests.Output]] = Def.task {
+  lazy val multiJvmExecuteTests: Def.Initialize[sbt.Task[Tests.Output]] = Def.task {
     runMultiJvmTests(
       multiJvmTests.value,
       multiJvmMarker.value,
@@ -232,7 +232,7 @@ object MultiJvmPlugin extends AutoPlugin {
     )
   }
 
-  def multiJvmTestOnly: Def.Initialize[sbt.InputTask[Unit]] = InputTask.createDyn(
+  lazy val multiJvmTestOnly: Def.Initialize[sbt.InputTask[Unit]] = InputTask.createDyn(
     loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))
   ) {
     Def.task { case (selection, _extraOptions) =>
@@ -279,7 +279,7 @@ object MultiJvmPlugin extends AutoPlugin {
     )
   }
 
-  def multiJvmRun: Def.Initialize[sbt.InputTask[Unit]] = InputTask.createDyn(
+  lazy val multiJvmRun: Def.Initialize[sbt.InputTask[Unit]] = InputTask.createDyn(
     loadForParser(multiJvmAppNames)((s, i) => runParser(s, i getOrElse Nil))
   ) {
     Def.task {
@@ -352,7 +352,7 @@ object MultiJvmPlugin extends AutoPlugin {
     (name, if (failures.nonEmpty) TestResult.Failed else TestResult.Passed)
   }
 
-  def multiNodeExecuteTestsTask: Def.Initialize[sbt.Task[Tests.Output]] = Def.task {
+  lazy val multiNodeExecuteTestsTask: Def.Initialize[sbt.Task[Tests.Output]] = Def.task {
     val (_jarName, (hostsAndUsers, javas), targetDir) = multiNodeWorkAround.value
     runMultiNodeTests(
       multiJvmTests.value,
@@ -369,7 +369,7 @@ object MultiJvmPlugin extends AutoPlugin {
     )
   }
 
-  def multiNodeTestOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask.createDyn(
+  lazy val multiNodeTestOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask.createDyn(
     loadForParser(multiJvmTestNames)((s, i) => Defaults.testOnlyParser(s, i getOrElse Nil))
   ) {
     Def.task { case (selected, _extraOptions) =>
