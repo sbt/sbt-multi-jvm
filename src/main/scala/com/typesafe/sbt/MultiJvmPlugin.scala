@@ -77,8 +77,6 @@ object MultiJvmPlugin extends AutoPlugin {
   @deprecated("Use MultiJvmPlugin.autoImport instead", "0.6.0")
   object MultiJvmKeys extends MultiJvmKeys
 
-  import autoImport._
-
   override def requires = plugins.JvmPlugin
 
   override def projectConfigurations = Seq(MultiJvm)
