@@ -68,7 +68,7 @@ ThisBuild / githubWorkflowPublish := Seq(
   )
 )
 
-ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest", "macos-latest", "windows-latest")
 
 ThisBuild / githubWorkflowJavaVersions := Seq(
   JavaSpec.temurin("8"),
