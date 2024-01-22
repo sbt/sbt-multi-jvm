@@ -34,7 +34,9 @@ scalacOptions ++= List(
   "-deprecation",
   "-language:_",
   "-encoding",
-  "UTF-8"
+  "UTF-8",
+  "-opt-inline-from:<sources>",
+  "-opt:l:inline"
 )
 
 // publish settings
