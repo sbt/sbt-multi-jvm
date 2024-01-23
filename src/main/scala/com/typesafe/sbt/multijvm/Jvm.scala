@@ -17,11 +17,10 @@ object Jvm {
       runOptions: Seq[String],
       logger: Logger,
       connectInput: Boolean
-  ) = {
+  ): Process =
     forkJava(javaBin, jvmOptions ++ runOptions, logger, connectInput)
-  }
 
-  def forkJava(javaBin: File, options: Seq[String], logger: Logger, connectInput: Boolean) = {
+  def forkJava(javaBin: File, options: Seq[String], logger: Logger, connectInput: Boolean): Process = {
     val java = javaBin.toString
     val command = (java :: options.toList).toArray
     val builder = new JProcessBuilder(command: _*)
@@ -31,7 +30,7 @@ object Jvm {
   /**
    * check if the current operating system is some OS
    */
-  def isOS(os: String) = try {
+  def isOS(os: String): Boolean = try {
     System.getProperty("os.name").toUpperCase startsWith os.toUpperCase
   } catch {
     case _: Throwable => false
@@ -40,7 +39,7 @@ object Jvm {
   /**
    * convert to proper path for the operating system
    */
-  def osPath(path: String) = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lineStream.mkString else path
+  def osPath(path: String): String = if (isOS("WINDOWS")) Process(Seq("cygpath", path)).lineStream.mkString else path
 
   def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger): Process = {
     val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)
@@ -78,21 +77,21 @@ object Jvm {
 }
 
 class JvmBasicLogger(name: String) extends BasicLogger {
-  def jvm(message: String) = "[%s] %s" format (name, message)
+  def jvm(message: String): String = "[%s] %s" format (name, message)
 
-  def log(level: Level.Value, message: => String) = System.out.synchronized {
+  def log(level: Level.Value, message: => String): Unit = System.out.synchronized {
     System.out.println(jvm(message))
   }
 
-  def trace(t: => Throwable) = System.out.synchronized {
+  def trace(t: => Throwable): Unit = System.out.synchronized {
     val traceLevel = getTrace
     if (traceLevel >= 0) System.out.print(StackTrace.trimmed(t, traceLevel))
   }
 
-  def success(message: => String) = log(Level.Info, message)
-  def control(event: ControlEvent.Value, message: => String) = log(Level.Info, message)
+  def success(message: => String): Unit = log(Level.Info, message)
+  def control(event: ControlEvent.Value, message: => String): Unit = log(Level.Info, message)
 
-  def logAll(events: Seq[LogEvent]) = System.out.synchronized { events.foreach(log) }
+  def logAll(events: Seq[LogEvent]): Unit = System.out.synchronized { events.foreach(log) }
 }
 
 final class JvmLogger(name: String) extends JvmBasicLogger(name)

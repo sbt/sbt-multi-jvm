@@ -10,7 +10,6 @@ import Keys._
 import java.io.File
 import java.lang.Boolean.getBoolean
 
-import scala.Console.{ GREEN, RESET }
 import scala.sys.process.Process
 
 import sbtassembly.AssemblyPlugin.assemblySettings
@@ -20,7 +19,7 @@ import AssemblyKeys._
 
 object MultiJvmPlugin extends AutoPlugin {
 
-  case class Options(jvm: Seq[String], extra: String => Seq[String], run: String => Seq[String])
+  final case class Options(jvm: Seq[String], extra: String => Seq[String], run: String => Seq[String])
 
   object autoImport extends MultiJvmKeys
 
@@ -181,9 +180,9 @@ object MultiJvmPlugin extends AutoPlugin {
     }
   }
 
-  def multiName(name: String, marker: String) = name.split(marker).head
+  def multiName(name: String, marker: String): String = name.split(marker).head
 
-  def multiSimpleName(name: String) = name.split("\\.").last
+  def multiSimpleName(name: String): String = name.split("\\.").last
 
   def javaCommand(javaHome: Option[File], name: String): File = {
     val home = javaHome.getOrElse(new File(System.getProperty("java.home")))
@@ -198,7 +197,7 @@ object MultiJvmPlugin extends AutoPlugin {
       options: Seq[String],
       fullClasspath: Classpath,
       multiRunCopiedClassDir: File
-  ) = {
+  ): String => Seq[String] = {
     val directoryBasedClasspathEntries = fullClasspath.files.filter(_.isDirectory)
     // Copy over just the jars to this folder.
     fullClasspath.files
@@ -211,11 +210,12 @@ object MultiJvmPlugin extends AutoPlugin {
     (testClass: String) => { Seq("-cp", cp, runner, "-s", testClass) ++ options }
   }
 
-  def scalaMultiNodeOptionsForScalatest(runner: String, options: Seq[String]) = { (testClass: String) =>
-    { Seq(runner, "-s", testClass) ++ options }
+  def scalaMultiNodeOptionsForScalatest(runner: String, options: Seq[String]): String => Seq[String] = {
+    (testClass: String) =>
+      { Seq(runner, "-s", testClass) ++ options }
   }
 
-  def scalaOptionsForApps(classpath: Classpath) = {
+  def scalaOptionsForApps(classpath: Classpath): String => Seq[String] = {
     val cp = classpath.files.absString
     (mainClass: String) => Seq("-cp", cp, mainClass)
   }
@@ -270,12 +270,12 @@ object MultiJvmPlugin extends AutoPlugin {
         List()
       else
         tests.map { case (_name, classes) =>
-          multi(_name, classes, marker, javaBin, options, srcDir, false, createLogger, log)
+          multi(_name, classes, marker, javaBin, options, srcDir, input = false, createLogger, log)
         }
     Tests.Output(
-      Tests.overall(results.map(_._2)),
+      Tests.overall(results.map { case (_, testResult) => testResult }),
       Map.empty,
-      results.map(result => Tests.Summary("multi-jvm", result._1))
+      results.map { case (testClass, _) => Tests.Summary("multi-jvm", testClass) }
     )
   }
 
@@ -304,7 +304,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   def runParser: (State, Seq[String]) => complete.Parser[String] = {
     import complete.DefaultParsers._
-    (state, appClasses) => Space ~> token(NotSpace examples appClasses.toSet)
+    (_, appClasses) => Space ~> token(NotSpace examples appClasses.toSet)
   }
 
   def multi(
@@ -318,10 +318,9 @@ object MultiJvmPlugin extends AutoPlugin {
       createLogger: String => Logger,
       log: Logger
   ): (String, TestResult) = {
-    val logName = "* " + name
-    log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
+    log.info("* " + name)
     val classesHostsJavas = getClassesHostsJavas(classes, IndexedSeq.empty, IndexedSeq.empty, "")
-    val hosts = classesHostsJavas.map(_._2)
+    val hosts = classesHostsJavas.map { case (_, hostAndUser, _) => hostAndUser }
     val processes = classes.zipWithIndex map { case (testClass, index) =>
       val className = multiSimpleName(testClass)
       val jvmName = "JVM-" + (index + 1) + "-" + className
@@ -432,9 +431,9 @@ object MultiJvmPlugin extends AutoPlugin {
           )
         }
     Tests.Output(
-      Tests.overall(results.map(_._2)),
+      Tests.overall(results.map { case (_, testResult) => testResult }),
       Map.empty,
-      results.map(result => Tests.Summary("multi-jvm", result._1))
+      results.map { case (testClass, _) => Tests.Summary("multi-jvm", testClass) }
     )
   }
 
@@ -453,16 +452,15 @@ object MultiJvmPlugin extends AutoPlugin {
       createLogger: String => Logger,
       log: Logger
   ): (String, TestResult) = {
-    val logName = "* " + name
-    log.info(if (log.ansiCodesSupported) GREEN + logName + RESET else logName)
+    log.info("* " + name)
     val classesHostsJavas = getClassesHostsJavas(classes, hostsAndUsers, javas, defaultJava)
-    val hosts = classesHostsJavas.map(_._2)
+    val hostAndUsers = classesHostsJavas.map { case (_, hostAndUser, _) => hostAndUser }
     // TODO move this out, maybe to the hosts string as well?
     val syncProcesses = classesHostsJavas.map { case (testClass, hostAndUser, _) =>
       (testClass + " sync", Jvm.syncJar(testJar, hostAndUser, targetDir, log))
     }
-    val syncResult = processExitCodes(name, syncProcesses, log)
-    if (syncResult._2 == TestResult.Passed) {
+    val (syncName, syncTestResult) = processExitCodes(name, syncProcesses, log)
+    if (syncTestResult == TestResult.Passed) {
       val processes = classesHostsJavas.zipWithIndex map { case ((testClass, hostAndUser, java), index) =>
         val jvmName = "JVM-" + (index + 1)
         val jvmLogger = createLogger(jvmName)
@@ -471,7 +469,7 @@ object MultiJvmPlugin extends AutoPlugin {
         val optionsFromFile =
           optionsFile map (IO.read(_)) map (_.trim.replace("\\n", " ").split("\\s+").toList) getOrElse Seq
             .empty[String]
-        val multiNodeOptions = getMultiNodeCommandLineOptions(hosts, index, classes.size)
+        val multiNodeOptions = getMultiNodeCommandLineOptions(hostAndUsers, index, classes.size)
         val allJvmOptions = options.jvm ++ optionsFromFile ++ options.extra(className) ++ multiNodeOptions
         val runOptions = options.run(testClass)
         val connectInput = input && index == 0
@@ -494,7 +492,7 @@ object MultiJvmPlugin extends AutoPlugin {
       }
       processExitCodes(name, processes, log)
     } else
-      syncResult
+      (syncName, syncTestResult)
   }
 
   private def padSeqOrDefaultTo(seq: IndexedSeq[String], default: String, max: Int): IndexedSeq[String] = {
@@ -502,7 +500,7 @@ object MultiJvmPlugin extends AutoPlugin {
     if (realSeq.size >= max)
       realSeq
     else
-      (realSeq /: (0 until (max - realSeq.size)))((mySeq, pos) => mySeq :+ realSeq(pos % realSeq.size))
+      (0 until (max - realSeq.size)).foldLeft(realSeq)((mySeq, pos) => mySeq :+ realSeq(pos % realSeq.size))
   }
 
   private def getClassesHostsJavas(
@@ -540,13 +538,13 @@ object MultiJvmPlugin extends AutoPlugin {
       if (hosts.isEmpty) {
         if (hostsFile.exists && hostsFile.canRead) {
           s.log.info("Using hosts defined in file " + hostsFile.getAbsolutePath)
-          IO.readLines(hostsFile).map(_.trim).filter(_.length > 0).toIndexedSeq
+          IO.readLines(hostsFile).map(_.trim).filter(_.nonEmpty).toIndexedSeq
         } else
           hosts.toIndexedSeq
       } else {
         if (hostsFile.exists && hostsFile.canRead)
           s.log.info(
-            "Hosts from setting " + multiNodeHosts.key.label + " is overrriding file " + hostsFile.getAbsolutePath
+            "Hosts from setting " + multiNodeHosts.key.label + " is overriding file " + hostsFile.getAbsolutePath
           )
         hosts.toIndexedSeq
       }
