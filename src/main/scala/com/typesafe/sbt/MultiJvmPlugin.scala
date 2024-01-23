@@ -27,50 +27,50 @@ object MultiJvmPlugin extends AutoPlugin {
   import autoImport._
 
   trait MultiJvmKeys {
-    val MultiJvm = config("multi-jvm") extend Test
+    lazy val MultiJvm = config("multi-jvm") extend Test
 
-    val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
+    lazy val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
 
-    val multiJvmTests = TaskKey[Map[String, Seq[String]]]("multi-jvm-tests")
-    val multiJvmTestNames = TaskKey[Seq[String]]("multi-jvm-test-names")
+    lazy val multiJvmTests = TaskKey[Map[String, Seq[String]]]("multi-jvm-tests")
+    lazy val multiJvmTestNames = TaskKey[Seq[String]]("multi-jvm-test-names")
 
-    val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
-    val multiJvmAppNames = TaskKey[Seq[String]]("multi-jvm-app-names")
+    lazy val multiJvmApps = TaskKey[Map[String, Seq[String]]]("multi-jvm-apps")
+    lazy val multiJvmAppNames = TaskKey[Seq[String]]("multi-jvm-app-names")
 
-    val multiJvmJavaCommand = TaskKey[File]("multi-jvm-java-command")
+    lazy val multiJvmJavaCommand = TaskKey[File]("multi-jvm-java-command")
 
-    val jvmOptions = TaskKey[Seq[String]]("jvm-options") // TODO: shouldn't that be regular `javaOptions`?
-    val extraOptions = SettingKey[String => Seq[String]]("extra-options")
-    val multiJvmCreateLogger = TaskKey[String => Logger]("multi-jvm-create-logger")
+    lazy val jvmOptions = TaskKey[Seq[String]]("jvm-options") // TODO: shouldn't that be regular `javaOptions`?
+    lazy val extraOptions = SettingKey[String => Seq[String]]("extra-options")
+    lazy val multiJvmCreateLogger = TaskKey[String => Logger]("multi-jvm-create-logger")
 
-    val scalatestRunner = SettingKey[String]("scalatest-runner")
-    val scalatestOptions = SettingKey[Seq[String]]("scalatest-options")
-    val scalatestClasspath = TaskKey[Classpath]("scalatest-classpath")
-    val scalatestScalaOptions = TaskKey[String => Seq[String]]("scalatest-scala-options")
-    val scalatestMultiNodeScalaOptions = TaskKey[String => Seq[String]]("scalatest-multi-node-scala-options")
-    val multiTestOptions = TaskKey[Options]("multi-test-options")
-    val multiNodeTestOptions = TaskKey[Options]("multi-node-test-options")
+    lazy val scalatestRunner = SettingKey[String]("scalatest-runner")
+    lazy val scalatestOptions = SettingKey[Seq[String]]("scalatest-options")
+    lazy val scalatestClasspath = TaskKey[Classpath]("scalatest-classpath")
+    lazy val scalatestScalaOptions = TaskKey[String => Seq[String]]("scalatest-scala-options")
+    lazy val scalatestMultiNodeScalaOptions = TaskKey[String => Seq[String]]("scalatest-multi-node-scala-options")
+    lazy val multiTestOptions = TaskKey[Options]("multi-test-options")
+    lazy val multiNodeTestOptions = TaskKey[Options]("multi-node-test-options")
 
-    val appScalaOptions = TaskKey[String => Seq[String]]("app-scala-options")
-    val multiRunOptions = TaskKey[Options]("multi-run-options")
+    lazy val appScalaOptions = TaskKey[String => Seq[String]]("app-scala-options")
+    lazy val multiRunOptions = TaskKey[Options]("multi-run-options")
 
-    val multiRunCopiedClassLocation = SettingKey[File]("multi-run-copied-class-location")
+    lazy val multiRunCopiedClassLocation = SettingKey[File]("multi-run-copied-class-location")
 
-    val multiJvmTestJar = TaskKey[String]("multi-jvm-test-jar")
-    val multiJvmTestJarName = TaskKey[String]("multi-jvm-test-jar-name")
+    lazy val multiJvmTestJar = TaskKey[String]("multi-jvm-test-jar")
+    lazy val multiJvmTestJarName = TaskKey[String]("multi-jvm-test-jar-name")
 
-    val multiNodeTest = TaskKey[Unit]("multi-node-test")
-    val multiNodeExecuteTests = TaskKey[Tests.Output]("multi-node-execute-tests")
-    val multiNodeTestOnly = InputKey[Unit]("multi-node-test-only")
+    lazy val multiNodeTest = TaskKey[Unit]("multi-node-test")
+    lazy val multiNodeExecuteTests = TaskKey[Tests.Output]("multi-node-execute-tests")
+    lazy val multiNodeTestOnly = InputKey[Unit]("multi-node-test-only")
 
-    val multiNodeHosts = SettingKey[Seq[String]]("multi-node-hosts")
-    val multiNodeHostsFileName = SettingKey[String]("multi-node-hosts-file-name")
-    val multiNodeProcessedHosts = TaskKey[(IndexedSeq[String], IndexedSeq[String])]("multi-node-processed-hosts")
-    val multiNodeTargetDirName = SettingKey[String]("multi-node-target-dir-name")
-    val multiNodeJavaName = SettingKey[String]("multi-node-java-name")
+    lazy val multiNodeHosts = SettingKey[Seq[String]]("multi-node-hosts")
+    lazy val multiNodeHostsFileName = SettingKey[String]("multi-node-hosts-file-name")
+    lazy val multiNodeProcessedHosts = TaskKey[(IndexedSeq[String], IndexedSeq[String])]("multi-node-processed-hosts")
+    lazy val multiNodeTargetDirName = SettingKey[String]("multi-node-target-dir-name")
+    lazy val multiNodeJavaName = SettingKey[String]("multi-node-java-name")
 
     // TODO fugly workaround for now
-    val multiNodeWorkAround =
+    lazy val multiNodeWorkAround =
       TaskKey[(String, (IndexedSeq[String], IndexedSeq[String]), String)]("multi-node-workaround")
   }
 
