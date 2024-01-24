@@ -1,6 +1,6 @@
 # sbt-multi-jvm
 
-[![Build Status](https://github.com/sbt/sbt-multi-jvm/actions/workflows/build-test.yml/badge.svg)](https://github.com/sbt/sbt-multi-jvm/actions/workflows/build-test.yml)
+[![Continuous Integration](https://github.com/sbt/sbt-multi-jvm/actions/workflows/ci.yml/badge.svg)](https://github.com/sbt/sbt-multi-jvm/actions/workflows/ci.yml)
 [![Repository size](https://img.shields.io/github/repo-size/sbt/sbt-multi-jvm.svg?logo=git)](https://github.com/sbt/sbt-multi-jvm)
 
 A [sbt] plugin for running scalatest tests in multiple JVMs. This plugin requires sbt 1.9.7 or higher
