@@ -23,7 +23,7 @@ pluginCrossBuild / sbtVersion := {
 
 // dependencies
 libraryDependencies += Defaults.sbtPluginExtra(
-  "com.eed3si9n" % "sbt-assembly" % "2.1.5",
+  "com.eed3si9n" % "sbt-assembly" % "2.2.0",
   (pluginCrossBuild / sbtBinaryVersion).value,
   (pluginCrossBuild / scalaBinaryVersion).value
 )
