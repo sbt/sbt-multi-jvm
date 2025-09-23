@@ -5,8 +5,8 @@
 package com.typesafe.sbt
 
 import com.typesafe.sbt.multijvm.{ Jvm, JvmLogger }
-import sbt._
-import Keys._
+import sbt.*
+import Keys.*
 import java.io.File
 import java.lang.Boolean.getBoolean
 
@@ -14,8 +14,8 @@ import scala.sys.process.Process
 
 import sbtassembly.AssemblyPlugin.assemblySettings
 import sbtassembly.{ MergeStrategy, AssemblyKeys }
-import sjsonnew.BasicJsonProtocol._
-import AssemblyKeys._
+import sjsonnew.BasicJsonProtocol.*
+import AssemblyKeys.*
 
 object MultiJvmPlugin extends AutoPlugin {
 
@@ -23,7 +23,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   object autoImport extends MultiJvmKeys
 
-  import autoImport._
+  import autoImport.*
 
   trait MultiJvmKeys {
     lazy val MultiJvm = config("multi-jvm") extend Test
@@ -82,10 +82,10 @@ object MultiJvmPlugin extends AutoPlugin {
 
   override lazy val projectSettings = multiJvmSettings
 
-  private[this] def noTestsMessage(scoped: ScopedKey[_])(implicit display: Show[ScopedKey[_]]): String =
+  private[this] def noTestsMessage(scoped: ScopedKey[?])(implicit display: Show[ScopedKey[?]]): String =
     "No tests to run for " + display.show(scoped)
 
-  lazy val multiJvmSettings: Seq[Def.Setting[_]] =
+  lazy val multiJvmSettings: Seq[Def.Setting[?]] =
     inConfig(MultiJvm)(Defaults.configSettings ++ internalMultiJvmSettings)
 
   // https://github.com/sbt/sbt/blob/v0.13.15/main/actions/src/main/scala/sbt/Tests.scala#L296-L298
@@ -303,7 +303,7 @@ object MultiJvmPlugin extends AutoPlugin {
   }
 
   def runParser: (State, Seq[String]) => complete.Parser[String] = {
-    import complete.DefaultParsers._
+    import complete.DefaultParsers.*
     (_, appClasses) => Space ~> token(NotSpace examples appClasses.toSet)
   }
 
