@@ -5,9 +5,9 @@
 package com.typesafe.sbt.multijvm
 
 import java.io.File
-import java.lang.{ ProcessBuilder => JProcessBuilder }
+import java.lang.ProcessBuilder as JProcessBuilder
 
-import sbt._
+import sbt.*
 import scala.sys.process.Process
 
 object Jvm {
@@ -23,7 +23,7 @@ object Jvm {
   def forkJava(javaBin: File, options: Seq[String], logger: Logger, connectInput: Boolean): Process = {
     val java = javaBin.toString
     val command = (java :: options.toList).toArray
-    val builder = new JProcessBuilder(command: _*)
+    val builder = new JProcessBuilder(command*)
     Process(builder).run(logger, connectInput)
   }
 
@@ -43,12 +43,12 @@ object Jvm {
 
   def syncJar(jarName: String, hostAndUser: String, remoteDir: String, sbtLogger: Logger): Process = {
     val command: Array[String] = Array("ssh", hostAndUser, "mkdir -p " + remoteDir)
-    val builder = new JProcessBuilder(command: _*)
+    val builder = new JProcessBuilder(command*)
     sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
     val process = Process(builder).run(sbtLogger, false)
     if (process.exitValue() == 0) {
       val command: Array[String] = Array("rsync", "-ace", "ssh", osPath(jarName), hostAndUser + ":" + remoteDir + "/")
-      val builder = new JProcessBuilder(command: _*)
+      val builder = new JProcessBuilder(command*)
       sbtLogger.debug("Jvm.syncJar about to run " + command.mkString(" "))
       Process(builder).run(sbtLogger, false)
     } else
@@ -71,7 +71,7 @@ object Jvm {
     val javaCommand = List(List(java), jvmOptions, List("-cp", shortJarName), appOptions).flatten
     val command = Array("ssh", hostAndUser, ("cd " :: (remoteDir :: (" ; " :: javaCommand))).mkString(" "))
     sbtLogger.debug("Jvm.forkRemoteJava about to run " + command.mkString(" "))
-    val builder = new JProcessBuilder(command: _*)
+    val builder = new JProcessBuilder(command*)
     Process(builder).run(logger, connectInput)
   }
 }
