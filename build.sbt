@@ -34,10 +34,19 @@ scalacOptions ++= List(
   "-deprecation",
   "-language:_",
   "-encoding",
-  "UTF-8",
-  "-opt-inline-from:<sources>",
-  "-opt:l:inline"
+  "UTF-8"
 )
+
+scalacOptions ++= {
+  if (insideCI.value) {
+    val log = sLog.value
+    log.info("Running in CI, enabling Scala2 optimizer")
+    Seq(
+      "-opt-inline-from:<sources>",
+      "-opt:l:inline"
+    )
+  } else Nil
+}
 
 // publish settings
 licenses += "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")
