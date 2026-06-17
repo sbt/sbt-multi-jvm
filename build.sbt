@@ -52,6 +52,10 @@ scalacOptions ++= {
     Nil
 }
 
+// scripted: expose the plugin version to test builds and show forked output
+scriptedLaunchOpts ++= Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
+scriptedBufferLog := false
+
 // publish settings
 licenses += "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")
 
