@@ -1,10 +1,13 @@
+/**
+ * Copyright (C) 2011-2012 Typesafe Inc. <http://www.typesafe.com>
+ */
+
 package sbt
 
 /**
- * Compatibility shim that lives in package `sbt` so it can re-export
- * `Tests.Output`, which became `private[sbt]` in sbt 2. Plugin code outside
- * of package `sbt` can name the test-output type through this public alias.
- * Compiles unchanged against sbt 1 (where `Tests.Output` is public) and sbt 2.
+ * Compatibility shim that lives in package `sbt` so it can re-export `Tests.Output`, which became `private[sbt]` in sbt 2.
+ * Plugin code outside of package `sbt` can name the test-output type through this public alias. Compiles unchanged
+ * against sbt 1 (where `Tests.Output` is public) and sbt 2.
  */
 object MultiJvmCompat {
   type MultiJvmTestOutput = Tests.Output
