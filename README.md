@@ -3,7 +3,7 @@
 [![Continuous Integration](https://github.com/sbt/sbt-multi-jvm/actions/workflows/ci.yml/badge.svg)](https://github.com/sbt/sbt-multi-jvm/actions/workflows/ci.yml)
 [![Repository size](https://img.shields.io/github/repo-size/sbt/sbt-multi-jvm.svg?logo=git)](https://github.com/sbt/sbt-multi-jvm)
 
-A [sbt] plugin for running scalatest tests in multiple JVMs. This plugin requires sbt 1.9.7 or higher
+A [sbt] plugin for running scalatest tests in multiple JVMs. This plugin supports sbt 1 (1.9.7 or higher) and sbt 2 (2.0.0 or higher); the same artifact coordinates resolve the correct build for each.
 
 [sbt]: http://www.scala-sbt.org
 
@@ -11,7 +11,7 @@ A [sbt] plugin for running scalatest tests in multiple JVMs. This plugin require
 
 To use the plugin in a project add the following to `project/plugins.sbt`:
 
-    addSbtPlugin("com.github.sbt" % "sbt-multi-jvm" % "0.6.0")
+    addSbtPlugin("com.github.sbt" % "sbt-multi-jvm" % "1.0.0")
 
 ## More information
 
