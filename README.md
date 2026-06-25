@@ -11,7 +11,7 @@ A [sbt] plugin for running scalatest tests in multiple JVMs. This plugin support
 
 To use the plugin in a project add the following to `project/plugins.sbt`:
 
-    addSbtPlugin("com.github.sbt" % "sbt-multi-jvm" % "1.0.0")
+    addSbtPlugin("com.github.sbt" % "sbt-multi-jvm" % "0.7.0")
 
 ## More information
 
