@@ -47,7 +47,7 @@ scalacOptions ++= List(
 // Scala 2.12-only optimizer / language flags
 scalacOptions ++= {
   if (scalaBinaryVersion.value == "2.12")
-    List("-language:_", "-Xsource:3", "-opt-inline-from:<sources>", "-opt:l:inline")
+    List("-language:_", "-Xsource:3", "-release:8", "-opt-inline-from:<sources>", "-opt:l:inline")
   else
     Nil
 }
