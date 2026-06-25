@@ -1,0 +1,7 @@
+# A multi-jvm test forks one JVM per node and runs the test in each.
+> MultiJvm/test
+
+# The marker files prove both node JVMs were actually forked and executed
+# (guards against the test-discovery tasks being served stale/empty from cache).
+$ exists target/node1.ran
+$ exists target/node2.ran

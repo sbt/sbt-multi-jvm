@@ -31,7 +31,7 @@ object Jvm {
    * check if the current operating system is some OS
    */
   def isOS(os: String): Boolean = try {
-    System.getProperty("os.name").toUpperCase startsWith os.toUpperCase
+    System.getProperty("os.name").toUpperCase.startsWith(os.toUpperCase)
   } catch {
     case _: Throwable => false
   }

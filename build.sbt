@@ -10,14 +10,17 @@ Global / onLoad := (Global / onLoad).value.andThen { s =>
 }
 
 lazy val scala212 = "2.12.21"
-ThisBuild / crossScalaVersions := Seq(scala212)
+lazy val scala3 = "3.8.4" // Scala version used by the sbt 2 metabuild
+// Cross-build for sbt 2 (Scala 3) and sbt 1 (Scala 2.12)
+ThisBuild / crossScalaVersions := Seq(scala212, scala3)
 ThisBuild / scalaVersion := scala212
 organization := "com.github.sbt"
 name := "sbt-multi-jvm"
 enablePlugins(SbtPlugin)
 pluginCrossBuild / sbtVersion := {
   scalaBinaryVersion.value match {
-    case "2.12" => "1.9.7" // set minimum sbt version
+    case "2.12" => "1.9.7" // set minimum sbt 1 version
+    case _      => "2.0.0" // sbt 2
   }
 }
 
@@ -27,17 +30,31 @@ libraryDependencies += Defaults.sbtPluginExtra(
   (pluginCrossBuild / sbtBinaryVersion).value,
   (pluginCrossBuild / scalaBinaryVersion).value
 )
+// Cross-build compatibility shims (FileRef / classpath / Tests API) for sbt 1 + sbt 2
+libraryDependencies += Defaults.sbtPluginExtra(
+  "com.github.sbt" % "sbt2-compat" % "0.1.0",
+  (pluginCrossBuild / sbtBinaryVersion).value,
+  (pluginCrossBuild / scalaBinaryVersion).value
+)
 
 // compile settings
 scalacOptions ++= List(
   "-unchecked",
   "-deprecation",
-  "-language:_",
   "-encoding",
-  "UTF-8",
-  "-opt-inline-from:<sources>",
-  "-opt:l:inline"
+  "UTF-8"
 )
+// Scala 2.12-only optimizer / language flags
+scalacOptions ++= {
+  if (scalaBinaryVersion.value == "2.12")
+    List("-language:_", "-Xsource:3", "-release:8", "-opt-inline-from:<sources>", "-opt:l:inline")
+  else
+    Nil
+}
+
+// scripted: expose the plugin version to test builds and show forked output
+scriptedLaunchOpts ++= Seq("-Xmx1024M", "-Dplugin.version=" + version.value)
+scriptedBufferLog := false
 
 // publish settings
 licenses += "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")
@@ -50,6 +67,7 @@ developers += Developer(
 )
 
 ThisBuild / githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "scripted")))
+ThisBuild / githubWorkflowArtifactUpload := false
 
 ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
 ThisBuild / githubWorkflowPublishTargetBranches :=
@@ -72,11 +90,8 @@ ThisBuild / githubWorkflowPublish := Seq(
 
 ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest", "macos-latest", "windows-latest")
 
+// sbt 2 requires JDK 17+
 ThisBuild / githubWorkflowJavaVersions := Seq(
-  JavaSpec.temurin("8"),
-  JavaSpec.temurin("11"),
   JavaSpec.temurin("17"),
   JavaSpec.temurin("21")
 )
-
-ThisBuild / githubWorkflowBuildMatrixExclusions += MatrixExclude(Map("java" -> "temurin@8", "os" -> "macos-latest"))
