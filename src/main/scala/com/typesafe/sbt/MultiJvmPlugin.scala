@@ -29,7 +29,7 @@ object MultiJvmPlugin extends AutoPlugin {
   import autoImport.*
 
   trait MultiJvmKeys {
-    lazy val MultiJvm = config("multi-jvm") extend Test
+    lazy val MultiJvm = config("multi-jvm").extend(Test)
 
     lazy val multiJvmMarker = SettingKey[String]("multi-jvm-marker")
 
@@ -94,7 +94,7 @@ object MultiJvmPlugin extends AutoPlugin {
   // https://github.com/sbt/sbt/blob/v0.13.15/main/actions/src/main/scala/sbt/Tests.scala#L296-L298
   private def showResults(log: Logger, results: MultiJvmTestOutput, noTestsMessage: => String): TestResult = {
     TestResultLogger.Default
-      .copy(printNoTests = TestResultLogger.const(_ info noTestsMessage))
+      .copy(printNoTests = TestResultLogger.const(_.info(noTestsMessage)))
       .run(log, results, "")
     results.overall
   }
@@ -106,9 +106,9 @@ object MultiJvmPlugin extends AutoPlugin {
     // does not capture that, so keep them uncached to match sbt 1 behavior.
     definedTests := uncached(Defaults.detectTests.value),
     multiJvmTests := uncached(collectMultiJvm(definedTests.value.map(_.name), multiJvmMarker.value)),
-    multiJvmTestNames := (multiJvmTests.map(_.keys.toSeq) storeAs multiJvmTestNames triggeredBy compile).value,
+    multiJvmTestNames := multiJvmTests.map(_.keys.toSeq).storeAs(multiJvmTestNames).triggeredBy(compile).value,
     multiJvmApps := uncached(collectMultiJvm(discoveredMainClasses.value, multiJvmMarker.value)),
-    multiJvmAppNames := (multiJvmApps.map(_.keys.toSeq) storeAs multiJvmAppNames triggeredBy compile).value,
+    multiJvmAppNames := multiJvmApps.map(_.keys.toSeq).storeAs(multiJvmAppNames).triggeredBy(compile).value,
     multiJvmJavaCommand := uncached(javaCommand(javaHome.value, "java")),
     jvmOptions := Seq.empty,
     extraOptions := { (_: String) => Seq.empty },
@@ -328,7 +328,7 @@ object MultiJvmPlugin extends AutoPlugin {
 
   def runParser: (State, Seq[String]) => complete.Parser[String] = {
     import complete.DefaultParsers.*
-    (_, appClasses) => Space ~> token(NotSpace examples appClasses.toSet)
+    (_, appClasses) => Space ~> token(NotSpace.examples(appClasses.toSet))
   }
 
   def multi(

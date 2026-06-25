@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        scala: [3.8.4, 2.12.21]
+        scala: [2.12.21, 3.8.4]
         java: [temurin@17, temurin@21]
     runs-on: ${{ matrix.os }}
     steps:
@@ -71,16 +71,6 @@ jobs:
       - shell: bash
         run: sbt '++ ${{ matrix.scala }}; test; scripted'
 
-      - name: Compress target directories
-        shell: bash
-        run: tar cf targets.tar target/out/jvm/scala-3.8.4/sbt-multi-jvm project/target
-
-      - name: Upload target directories
-        uses: actions/upload-artifact@v7
-        with:
-          name: target-${{ matrix.os }}-${{ matrix.scala }}-${{ matrix.java }}
-          path: targets.tar
-
   publish:
     name: Publish Artifacts
     needs: [build]
@@ -88,7 +78,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [3.8.4]
+        scala: [2.12.21]
         java: [temurin@17]
     runs-on: ${{ matrix.os }}
     steps:
@@ -127,26 +117,6 @@ jobs:
 
       - name: Setup sbt
         uses: sbt/setup-sbt@v1
-
-      - name: Download target directories (3.8.4)
-        uses: actions/download-artifact@v8
-        with:
-          name: target-${{ matrix.os }}-3.8.4-${{ matrix.java }}
-
-      - name: Inflate target directories (3.8.4)
-        run: |
-          tar xf targets.tar
-          rm targets.tar
-
-      - name: Download target directories (2.12.21)
-        uses: actions/download-artifact@v8
-        with:
-          name: target-${{ matrix.os }}-2.12.21-${{ matrix.java }}
-
-      - name: Inflate target directories (2.12.21)
-        run: |
-          tar xf targets.tar
-          rm targets.tar
 
       - name: Publish project
         env:
