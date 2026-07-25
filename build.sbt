@@ -32,7 +32,7 @@ libraryDependencies += Defaults.sbtPluginExtra(
 )
 // Cross-build compatibility shims (FileRef / classpath / Tests API) for sbt 1 + sbt 2
 libraryDependencies += Defaults.sbtPluginExtra(
-  "com.github.sbt" % "sbt2-compat" % "0.1.0",
+  "com.github.sbt" % "sbt2-compat" % "0.2.0",
   (pluginCrossBuild / sbtBinaryVersion).value,
   (pluginCrossBuild / scalaBinaryVersion).value
 )
