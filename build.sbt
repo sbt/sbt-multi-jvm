@@ -10,7 +10,7 @@ Global / onLoad := (Global / onLoad).value.andThen { s =>
 }
 
 lazy val scala212 = "2.12.21"
-lazy val scala3 = "3.8.4" // Scala version used by the sbt 2 metabuild
+lazy val scala3 = "3.9.0" // Scala version used by the sbt 2 metabuild
 // Cross-build for sbt 2 (Scala 3) and sbt 1 (Scala 2.12)
 ThisBuild / crossScalaVersions := Seq(scala212, scala3)
 ThisBuild / scalaVersion := scala212
