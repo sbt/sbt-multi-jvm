@@ -10,7 +10,7 @@ Global / onLoad := (Global / onLoad).value.andThen { s =>
 }
 
 lazy val scala212 = "2.12.21"
-lazy val scala3 = "3.8.4" // Scala version used by the sbt 2 metabuild
+lazy val scala3 = "3.9.0" // Scala version used by the sbt 2 metabuild
 // Cross-build for sbt 2 (Scala 3) and sbt 1 (Scala 2.12)
 ThisBuild / crossScalaVersions := Seq(scala212, scala3)
 ThisBuild / scalaVersion := scala212
@@ -20,7 +20,7 @@ enablePlugins(SbtPlugin)
 pluginCrossBuild / sbtVersion := {
   scalaBinaryVersion.value match {
     case "2.12" => "1.9.7" // set minimum sbt 1 version
-    case _      => "2.0.0" // sbt 2
+    case _      => "2.1.0" // sbt 2
   }
 }
 
@@ -93,5 +93,8 @@ ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest", "macos-latest", "windows-
 // sbt 2 requires JDK 17+
 ThisBuild / githubWorkflowJavaVersions := Seq(
   JavaSpec.temurin("17"),
-  JavaSpec.temurin("21")
+  JavaSpec.temurin("21"),
+  JavaSpec.temurin("25")
 )
+
+ThisBuild / githubWorkflowPublishJavaVersion := JavaSpec.temurin("17")
